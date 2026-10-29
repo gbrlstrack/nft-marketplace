@@ -414,3 +414,160 @@ test('sair durante login pendente prevalece sobre a resposta de autenticação a
   await expect(page.getByText('Maya Silva', { exact: true })).toHaveCount(0)
   await expect(page.getByText('Theo Costa', { exact: true })).toHaveCount(0)
 })
+
+test('cadastro recusado após login concorrente reconcilia perfil e favoritos com a sessão autoritativa', async ({
+  page,
+}) => {
+  await login(page, 'maya@kurio.test', '/nfts/nft-001')
+  const savedFavorite = responseFor(page, 'PUT', '/favorites/nft-001')
+  await page
+    .getByRole('button', { name: 'Adicionar aos favoritos', exact: true })
+    .click()
+  expect((await savedFavorite).status()).toBe(200)
+  await page.goto('/login?returnTo=%2Fprofile')
+  await mockControl(page, 'scenario', { name: 'slow-auth' })
+  const signIn = page.getByRole('form', { name: 'Entrar', exact: true })
+  await signIn
+    .getByRole('textbox', { name: 'E-mail', exact: true })
+    .fill('theo@kurio.test')
+  await signIn.getByLabel('Senha', { exact: true }).fill(demoPassword)
+  let loginSettled = false
+  const signedIn = responseFor(page, 'POST', '/auth/login').then((response) => {
+    loginSettled = true
+    return response
+  })
+  const loginStarted = page.waitForRequest(
+    (request) =>
+      request.method() === 'POST' &&
+      new URL(request.url()).pathname === '/api/auth/login' &&
+      request.postDataJSON()?.email === 'theo@kurio.test',
+  )
+  await signIn.getByRole('button', { name: 'Entrar', exact: true }).click()
+  await loginStarted
+  await page.getByRole('link', { name: 'Criar perfil', exact: true }).click()
+  const register = page.getByRole('form', { name: 'Criar perfil', exact: true })
+  await register
+    .getByRole('textbox', { name: 'Nome de usuário', exact: true })
+    .fill('cadastro_conflito')
+  await register
+    .getByRole('textbox', { name: 'E-mail', exact: true })
+    .fill('maya@kurio.test')
+  await register.getByLabel('Senha', { exact: true }).fill(demoPassword)
+  await register
+    .getByLabel('Confirmar senha', { exact: true })
+    .fill(demoPassword)
+  expect(loginSettled).toBe(false)
+  const refused = responseFor(page, 'POST', '/auth/register')
+  const reconciled = responseFor(page, 'GET', '/auth/session')
+  await register
+    .getByRole('button', { name: 'Criar perfil', exact: true })
+    .click()
+  expect((await signedIn).status()).toBe(200)
+  expect((await refused).status()).toBe(409)
+  const session = await reconciled
+  expect(session.status()).toBe(200)
+  expect(await session.json()).toMatchObject({
+    user: { name: 'Theo Costa', email: 'theo@kurio.test' },
+  })
+  await expect(register.getByRole('alert')).toBeVisible()
+
+  const profileLink = page.getByRole('link', {
+    name: 'Meu perfil',
+    exact: true,
+  })
+  if (!(await profileLink.isVisible()))
+    await page.getByRole('button', { name: 'Abrir menu', exact: true }).click()
+  const profileResponse = responseFor(page, 'GET', '/profile')
+  await profileLink.click()
+  const profileData = await profileResponse
+  expect(profileData.status()).toBe(200)
+  expect(await profileData.json()).toMatchObject({
+    name: 'Theo Costa',
+    email: 'theo@kurio.test',
+  })
+  const profile = page.getByRole('form', {
+    name: 'Dados do perfil',
+    exact: true,
+  })
+  await expect(
+    profile.getByRole('textbox', { name: 'Nome de exibição', exact: true }),
+  ).toHaveValue('Theo Costa')
+  await expect(
+    profile.getByRole('textbox', { name: 'E-mail', exact: true }),
+  ).toHaveValue('theo@kurio.test')
+  const favorites = responseFor(page, 'GET', '/favorites')
+  await page
+    .getByRole('navigation', { name: 'Área do colecionador', exact: true })
+    .getByRole('link', { name: 'Favoritos', exact: true })
+    .click()
+  expect((await favorites).status()).toBe(200)
+  await expect(
+    page.getByText('Você ainda não tem favoritos', { exact: true }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('heading', {
+      level: 3,
+      name: 'Chromatic Drift',
+      exact: true,
+    }),
+  ).toHaveCount(0)
+  await expect(page.getByText('Maya Silva', { exact: true })).toHaveCount(0)
+})
+
+for (const username of ['nova_conta', '___']) {
+  test(`cadastro ${JSON.stringify(username)} gera ENS válido e permite salvar o perfil`, async ({
+    page,
+  }) => {
+    await page.goto('/register?returnTo=%2Fprofile')
+    const register = page.getByRole('form', {
+      name: 'Criar perfil',
+      exact: true,
+    })
+    await register
+      .getByRole('textbox', { name: 'Nome de usuário', exact: true })
+      .fill(username)
+    await register
+      .getByRole('textbox', { name: 'E-mail', exact: true })
+      .fill(
+        username === '___' ? 'sublinhados@kurio.test' : 'nova_conta@kurio.test',
+      )
+    await register.getByLabel('Senha', { exact: true }).fill(demoPassword)
+    await register
+      .getByLabel('Confirmar senha', { exact: true })
+      .fill(demoPassword)
+    const created = responseFor(page, 'POST', '/auth/register')
+    await register
+      .getByRole('button', { name: 'Criar perfil', exact: true })
+      .click()
+    expect((await created).status()).toBe(201)
+    await expect(page).toHaveURL('/profile')
+    const profile = page.getByRole('form', {
+      name: 'Dados do perfil',
+      exact: true,
+    })
+    const usernameField = profile.getByRole('textbox', {
+      name: 'Nome de usuário',
+      exact: true,
+    })
+    const ensField = profile.getByRole('textbox', {
+      name: 'Nome ENS',
+      exact: true,
+    })
+    await expect(usernameField).toHaveValue(username)
+    const ens = await ensField.inputValue()
+    expect(ens).toMatch(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.eth$/i)
+    const saved = responseFor(page, 'PATCH', '/profile')
+    await profile
+      .getByRole('button', { name: 'Salvar perfil', exact: true })
+      .click()
+    const response = await saved
+    expect(response.status()).toBe(200)
+    expect(await response.json()).toMatchObject({ username, ensName: ens })
+    await expect(profile.getByRole('status')).toContainText(
+      'Perfil atualizado.',
+    )
+    await page.reload()
+    await expect(usernameField).toHaveValue(username)
+    await expect(ensField).toHaveValue(ens)
+  })
+}
