@@ -1,0 +1,24 @@
+import { setupWorker } from 'msw/browser'
+import { HttpNetworkFrame } from 'msw/experimental'
+
+import { handlers } from './handlers'
+import { initializeMockScenario } from './scenarios'
+
+export const worker = setupWorker(...handlers)
+
+export async function startMocking(): Promise<void> {
+  if (import.meta.env.VITE_ENABLE_MOCKS !== 'true') return
+
+  initializeMockScenario()
+  await worker.start({
+    serviceWorker: { url: '/mockServiceWorker.js' },
+    onUnhandledFrame({ frame, defaults }) {
+      if (!(frame instanceof HttpNetworkFrame)) return
+
+      const pathname = new URL(frame.data.request.url).pathname
+      if (pathname === '/api' || pathname.startsWith('/api/')) {
+        defaults.error()
+      }
+    },
+  })
+}
