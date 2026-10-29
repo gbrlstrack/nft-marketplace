@@ -159,8 +159,12 @@ export function Shell() {
           </p>
         )}
         <FavoriteNotice />
-        {!session.user && isPrivatePath(path) ? (
-          <p role="status">Entre novamente para continuar.</p>
+        {isPrivatePath(path) && (!session.user || session.authPending) ? (
+          <p role="status">
+            {session.authPending
+              ? 'Atualizando sessão…'
+              : 'Entre novamente para continuar.'}
+          </p>
         ) : (
           <Outlet />
         )}

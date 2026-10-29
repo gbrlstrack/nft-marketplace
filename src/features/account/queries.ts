@@ -5,7 +5,7 @@ import { isCurrentSession, privateQueryKey } from '@/features/auth/session'
 import { http } from '@/lib/http'
 
 export function useProfileQuery() {
-  const { user } = useSession()
+  const { user, authPending } = useSession()
   const queryClient = useQueryClient()
   const queryKey = privateQueryKey('profile')
   return useQuery({
@@ -16,13 +16,13 @@ export function useProfileQuery() {
       const cached = queryClient.getQueryData<ProfileResponse>(queryKey)
       return cached && cached.version > response.version ? cached : response
     },
-    enabled: Boolean(user),
+    enabled: Boolean(user) && !authPending,
     meta: { private: true },
   })
 }
 
 export function useWalletsQuery() {
-  const { user } = useSession()
+  const { user, authPending } = useSession()
   const queryClient = useQueryClient()
   const queryKey = privateQueryKey('wallets')
   return useQuery({
@@ -41,7 +41,7 @@ export function useWalletsQuery() {
         }),
       }
     },
-    enabled: Boolean(user),
+    enabled: Boolean(user) && !authPending,
     meta: { private: true },
   })
 }

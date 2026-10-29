@@ -11,6 +11,7 @@ import { queryClient } from '@/lib/query-client'
 export interface SessionState extends SessionResponse {
   scope: number
   initialized: boolean
+  authPending: boolean
   reason: 'expired' | 'logout' | null
 }
 
@@ -20,6 +21,7 @@ let state: SessionState = {
   ...anonymous,
   scope: 0,
   initialized: false,
+  authPending: false,
   reason: null,
 }
 let refreshVersion = 0
@@ -38,7 +40,9 @@ export function subscribeSession(listener: () => void) {
   }
 }
 export function isCurrentSession(scope: number, userId: string) {
-  return state.scope === scope && state.user?.id === userId
+  return (
+    !state.authPending && state.scope === scope && state.user?.id === userId
+  )
 }
 export function privateQueryKey(resource: string) {
   return [
@@ -71,7 +75,7 @@ export function acceptSession(
   const scope = state.scope + (newCycle || identityChanged ? 1 : 0)
   refreshVersion += 1
   clearTimeout(expiryTimer)
-  state = { ...session, scope, reason, initialized: true }
+  state = { ...session, scope, reason, initialized: true, authPending: false }
   if (newCycle || identityChanged) {
     void queryClient.cancelQueries({ queryKey: sessionKey })
     clearPrivateData()
@@ -94,16 +98,24 @@ export function expireSession() {
   acceptSession(anonymous, true, 'expired')
 }
 
-export async function refreshSession() {
-  await authQueue
-  const version = refreshVersion
-  const session = await queryClient.fetchQuery({
+function fetchSession() {
+  return queryClient.fetchQuery({
     queryKey: sessionKey,
     queryFn: async ({ signal }) =>
       (await http.get<SessionResponse>('/auth/session', { signal })).data,
     staleTime: 0,
     retry: false,
   })
+}
+
+export async function refreshSession() {
+  let barrier: Promise<unknown>
+  do {
+    barrier = authQueue
+    await barrier
+  } while (barrier !== authQueue)
+  const version = refreshVersion
+  const session = await fetchSession()
   if (version === refreshVersion) {
     const expired = Boolean(state.user && !session.user)
     acceptSession(session, expired, expired ? 'expired' : null)
@@ -117,7 +129,7 @@ export async function ensureSession() {
 }
 
 export function updateSessionUser(user: Collector) {
-  if (state.user?.id === user.id)
+  if (!state.authPending && state.user?.id === user.id)
     acceptSession({ user, expiresAt: state.expiresAt })
 }
 
@@ -127,11 +139,39 @@ function authOperation<T>(
   commit: (result: T) => void,
 ) {
   const revision = ++authRevision
+  if (!state.authPending) {
+    refreshVersion += 1
+    clearTimeout(expiryTimer)
+    state = {
+      ...state,
+      scope: state.scope + 1,
+      authPending: true,
+      reason: null,
+    }
+    void queryClient.cancelQueries({ queryKey: sessionKey })
+    clearPrivateData()
+    for (const listener of listeners) listener()
+  }
   const result = authQueue.then(async () => {
-    const data = await operation()
-    const accepted = revision === authRevision
-    if (accepted) commit(data)
-    return { accepted }
+    try {
+      const data = await operation()
+      const accepted = revision === authRevision
+      if (accepted) commit(data)
+      return { accepted }
+    } catch (error) {
+      if (revision === authRevision) {
+        // A superseded success may already have changed the browser cookie.
+        // Read REST directly here: refreshSession awaits this very queue.
+        try {
+          const authoritative = await fetchSession()
+          if (revision === authRevision) acceptSession(authoritative, true)
+        } catch {
+          if (revision === authRevision)
+            acceptSession(anonymous, true, 'expired')
+        }
+      }
+      throw error
+    }
   })
   authQueue = result.catch(() => undefined)
   return result

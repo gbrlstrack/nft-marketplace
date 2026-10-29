@@ -23,14 +23,19 @@ export function FavoriteButton({
   nftId: string
   className?: string
 }) {
-  const { user, scope } = useSession()
+  const { user, scope, authPending } = useSession()
   const navigate = useNavigate()
   const href = useLocation({ select: (location) => location.href })
   const options = favoritesOptions()
-  const favorites = useQuery({ ...options, enabled: Boolean(user) })
+  const favorites = useQuery({
+    ...options,
+    enabled: Boolean(user) && !authPending,
+  })
   const mutationKey = ['favorites', user?.id, scope]
   const pending = useIsMutating({ mutationKey }) > 0
-  const selected = Boolean(user && favorites.data?.nftIds.includes(nftId))
+  const selected = Boolean(
+    user && !authPending && favorites.data?.nftIds.includes(nftId),
+  )
   const mutation = useMutation({
     mutationKey,
     meta: { private: true },
@@ -83,7 +88,9 @@ export function FavoriteButton({
       }
       aria-pressed={selected}
       disabled={
-        pending || Boolean(user && (favorites.isPending || favorites.isError))
+        authPending ||
+        pending ||
+        Boolean(user && (favorites.isPending || favorites.isError))
       }
       onClick={() => {
         if (!user)
