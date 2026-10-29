@@ -1,4 +1,5 @@
-import { Link, Outlet } from '@tanstack/react-router'
+import { Link, Outlet, useLocation } from '@tanstack/react-router'
+import { useMutation } from '@tanstack/react-query'
 import { ArrowUpRight, Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -9,10 +10,20 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
+import { useSession } from '@/features/auth/use-session'
+import { logoutSession } from '@/features/auth/session'
+import { SessionLifecycle } from '@/features/auth/session-lifecycle'
+import { isPrivatePath } from '@/features/auth/return-to'
+import { FavoriteNotice } from '@/features/favorites/favorite-button'
+import { getErrorMessage } from '@/lib/api-error'
 
 export function Shell() {
+  const session = useSession()
+  const path = useLocation({ select: (location) => location.pathname })
+  const logout = useMutation({ mutationFn: logoutSession })
   return (
     <>
+      <SessionLifecycle />
       <a
         className="fixed top-3 left-3 z-[100] -translate-y-24 rounded-md bg-primary px-5 py-3 font-bold text-primary-foreground focus:translate-y-0"
         href="#conteudo"
@@ -37,11 +48,32 @@ export function Shell() {
           <a href="/#catalogo" className="text-sm hover:text-primary">
             Mercado
           </a>
+          <Link to="/favorites" className="text-sm hover:text-primary">
+            Favoritos
+          </Link>
         </nav>
-        <span className="hidden text-xs text-muted-foreground md:block">
-          Arte. Cultura. Coleção.{' '}
-          <ArrowUpRight className="ml-2 inline size-4" aria-hidden="true" />
-        </span>
+        <div className="hidden items-center gap-4 md:flex">
+          {session.user ? (
+            <>
+              <Link to="/profile" className="text-sm text-primary">
+                Meu perfil
+              </Link>
+              <Button
+                variant="outline"
+                onClick={() => logout.mutate()}
+                disabled={logout.isPending}
+              >
+                Sair
+              </Button>
+            </>
+          ) : (
+            <Button asChild>
+              <Link to="/login">
+                Entrar <ArrowUpRight aria-hidden="true" />
+              </Link>
+            </Button>
+          )}
+        </div>
         <div className="md:hidden">
           <Sheet>
             <SheetTrigger asChild>
@@ -68,6 +100,46 @@ export function Shell() {
                     Explorar
                   </Link>
                 </SheetClose>
+                <SheetClose asChild>
+                  <Link to="/favorites" className="rounded-md p-3 text-primary">
+                    Favoritos
+                  </Link>
+                </SheetClose>
+                {session.user ? (
+                  <>
+                    <SheetClose asChild>
+                      <Link
+                        to="/profile"
+                        className="rounded-md p-3 text-primary"
+                      >
+                        Meu perfil
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Link
+                        to="/wallets"
+                        className="rounded-md p-3 text-primary"
+                      >
+                        Carteiras
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Button
+                        variant="outline"
+                        onClick={() => logout.mutate()}
+                        disabled={logout.isPending}
+                      >
+                        Sair
+                      </Button>
+                    </SheetClose>
+                  </>
+                ) : (
+                  <SheetClose asChild>
+                    <Link to="/login" className="rounded-md p-3 text-primary">
+                      Entrar
+                    </Link>
+                  </SheetClose>
+                )}
               </nav>
             </SheetContent>
           </Sheet>
@@ -78,7 +150,20 @@ export function Shell() {
         tabIndex={-1}
         className="mx-auto min-h-[75vh] max-w-7xl px-5 py-10 focus:outline-none md:px-8 md:py-14"
       >
-        <Outlet />
+        {logout.isError && (
+          <p role="alert" className="mb-5 text-sm">
+            {getErrorMessage(
+              logout.error,
+              'Não foi possível sair. Tente novamente.',
+            )}
+          </p>
+        )}
+        <FavoriteNotice />
+        {!session.user && isPrivatePath(path) ? (
+          <p role="status">Entre novamente para continuar.</p>
+        ) : (
+          <Outlet />
+        )}
       </main>
       <footer className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 border-t border-border px-5 py-8 text-xs text-muted-foreground md:px-8">
         <span className="font-bold tracking-[0.15em] text-foreground">

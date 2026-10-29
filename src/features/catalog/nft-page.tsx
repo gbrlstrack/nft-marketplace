@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatEth } from '@/lib/eth'
 import { nftOptions } from './queries'
+import { FavoriteButton } from '@/features/favorites/favorite-button'
 
 export function NftPage() {
   const { nftId } = useParams({ from: '/nfts/$nftId' })
@@ -123,6 +124,7 @@ function NftDetails({ nft }: { nft: Nft }) {
           <h1 className="mt-3 text-3xl leading-tight font-bold lg:text-4xl">
             {nft.name}
           </h1>
+          <FavoriteButton nftId={nft.id} className="mt-4" />
           <p className="mt-3 text-sm text-muted-foreground">
             Criado por {nft.creator.name}
           </p>

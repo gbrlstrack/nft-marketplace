@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { ArrowUpRight } from 'lucide-react'
 import type { Nft } from '@/contracts'
 import { formatEth, parseEth } from '@/lib/eth'
+import { FavoriteButton } from '@/features/favorites/favorite-button'
 
 export function NftCard({ nft }: { nft: Nft }) {
   const available = nft.editions.filter((edition) => edition.available > 0)
@@ -13,7 +14,7 @@ export function NftCard({ nft }: { nft: Nft }) {
     null,
   )
   return (
-    <li className="group min-w-0">
+    <li className="group relative min-w-0">
       <Link
         to="/nfts/$nftId"
         params={{ nftId: nft.id }}
@@ -46,6 +47,7 @@ export function NftCard({ nft }: { nft: Nft }) {
           {lowest === null ? 'Esgotado' : `${formatEth(lowest)} ETH`}
         </p>
       </Link>
+      <FavoriteButton nftId={nft.id} className="absolute top-4 right-4" />
     </li>
   )
 }
