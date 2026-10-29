@@ -145,7 +145,7 @@ export const handlers = [
     if (networkFailure) return networkFailure
 
     const search = parseListRequest(url)
-    if ('code' in search) return errorResponse(search, 400)
+    if ('code' in search) return errorResponse(search, 422)
 
     const query = normalize(search.q ?? '')
     const collection = normalize(search.collection ?? '')
