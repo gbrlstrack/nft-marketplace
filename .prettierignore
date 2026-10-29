@@ -1,0 +1,10 @@
+node_modules
+dist
+.tools
+.cache
+package-lock.json
+public/mockServiceWorker.js
+playwright-report
+test-results
+docs/plan/requisitos.md
+docs/plan/implementacao.md

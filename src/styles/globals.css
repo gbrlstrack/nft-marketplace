@@ -1,0 +1,112 @@
+@import 'tailwindcss';
+
+/* Aproximações dos PNGs em prototype/. Confirmar valores no arquivo Figma. */
+:root {
+  color-scheme: dark;
+  --background: #140d0a;
+  --foreground: #f3ece4;
+  --card: #241612;
+  --primary: #df944e;
+  --primary-foreground: #1b1008;
+  --muted: #34251b;
+  --muted-foreground: #c4ac8d;
+  --border: #493021;
+  --ring: #f0b574;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --font-sans: 'Courier New', ui-monospace, monospace;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    margin: 0;
+    min-width: 320px;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+  }
+  button,
+  input,
+  select {
+    font: inherit;
+  }
+  button,
+  a,
+  input,
+  select {
+    -webkit-tap-highlight-color: transparent;
+  }
+  a,
+  button {
+    touch-action: manipulation;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 4px;
+  }
+  button:not(:disabled),
+  select {
+    cursor: pointer;
+  }
+}
+
+.hero-art {
+  background:
+    radial-gradient(circle at 62% 40%, #edb97c 0 14%, transparent 14.5%),
+    radial-gradient(ellipse at 60% 58%, #96562f 0 27%, transparent 27.5%),
+    conic-gradient(
+      from 40deg at 30% 80%,
+      #a55c32,
+      #2c1c14,
+      #d79552,
+      #5e3928,
+      #a55c32
+    );
+}
+
+.skeleton {
+  background-image: linear-gradient(
+    100deg,
+    transparent 30%,
+    #ffffff0b 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s linear infinite;
+}
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
