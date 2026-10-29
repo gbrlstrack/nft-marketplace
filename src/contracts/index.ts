@@ -147,6 +147,13 @@ export type WalletRole = 'primary' | 'secondary'
 export interface Wallet {
   id: EntityId
   label: string
+  displayName: string
+  profileName: string
+  provider: 'metamask' | 'walletconnect' | 'coinbase'
+  email: string
+  ensName: string
+  referralCode: string
+  secondaryAddress: string
   address: string
   network: WalletNetwork
   role: WalletRole
@@ -155,6 +162,13 @@ export interface Wallet {
 
 export interface WalletWriteRequest {
   label: string
+  displayName: string
+  profileName: string
+  provider: 'metamask' | 'walletconnect' | 'coinbase'
+  email: string
+  ensName: string
+  referralCode: string
+  secondaryAddress: string
   address: string
   network: WalletNetwork
   role: WalletRole
@@ -294,12 +308,18 @@ export interface OrderListResponse {
 }
 
 export interface Profile extends Collector {
+  username: string
+  ensName: string
+  walletAlias: string
   bio: string
   version: ResourceVersion
 }
 
 export interface UpdateProfileRequest {
   name: string
+  username: string
+  ensName: string
+  walletAlias: string
   email: string
   bio: string
 }
