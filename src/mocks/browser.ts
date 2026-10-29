@@ -12,6 +12,7 @@ export async function startMocking(): Promise<void> {
 
   initializeMockScenario()
   await worker.start({
+    quiet: true,
     serviceWorker: { url: '/mockServiceWorker.js' },
     onUnhandledFrame({ frame, defaults }) {
       if (!(frame instanceof HttpNetworkFrame)) return
