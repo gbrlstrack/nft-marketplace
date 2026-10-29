@@ -4,7 +4,11 @@
 
 O [enunciado](docs/plan/requisitos.md) define o escopo. O [plano](docs/plan/implementacao.md) registra execução e evidências; a [matriz de aceite](docs/acceptance.md) rastreia os critérios. A implementação começa pela fundação e pelos contratos. As fases posteriores continuam pendentes até sua validação.
 
+O primeiro marco também implementa leitura de catálogo/detalhe, filtros combinados, URL/histórico, cancelamento e cenários de falha. O detalhe ainda não tem favoritos ou compra; conta, carrinho, pedidos e eventos não estão implementados. A presença de seus DTOs não indica disponibilidade de endpoints.
+
 A [inspeção do design](docs/design-audit.md) começou com o acesso ao Figma bloqueado. O usuário disponibilizou 15 PNGs em `prototype/`, agora usados como referência de composição, paleta escura/cobre e marca Kurio. Os valores exatos dos estilos, a família tipográfica e os assets individuais ainda precisam de exportação. A fonte de sistema monoespaçada e as artes geométricas locais são substituições provisórias; não há aceite de fidelidade visual.
+
+O usuário confirmou para o título desktop 43 px, peso 700, altura de linha 70 px e espaçamento entre letras zero; esses valores já estão aplicados. A referência `font/family` ainda precisa ser resolvida para o nome da fonte.
 
 ## Decisões iniciais
 
@@ -48,6 +52,10 @@ Logout/troca de usuário devem cancelar consultas, remover dados privados e ence
 Eventos carregam ID estável, recurso, versão e, para pedidos, usuário. O cliente descarta eventos repetidos/antigos e nunca regride um pedido terminal. Após reconexão, REST é a fonte de reconciliação dos recursos ativos. O banco simulado deve ser atualizado antes da emissão do evento. Carrinho e checkout invalidam cotação ao mudar preço/disponibilidade. Favoritos terão mutation otimista com snapshot e rollback; implementação e testes acompanham a fase correspondente.
 
 ## Demonstração e deploy
+
+Neste marco, MSW 3 intercepta apenas `GET /api/nfts` e `GET /api/nfts/:id`; dados de catálogo vivem em `src/mocks/fixtures.ts`. Os seis cenários de leitura são selecionados antes do primeiro request e persistem em `sessionStorage`. Não existe estado privado ou mutation de catálogo; reset de entidades, dois usuários e eventos continuam pendentes. Requests inesperados em `/api` são erros, enquanto assets locais podem passar pela rede. A discriminação HTTP usa `HttpNetworkFrame` de `msw/experimental`, fixado pelo lockfile; revisar essa integração ao atualizar MSW.
+
+Os scripts `dev` e `build` usam o modo Vite `demo` e a configuração versionada `.env.demo`. `VITE_ENABLE_MOCKS=false` desativa a simulação; não há fallback de fixtures na UI. O bootstrap aguarda o service worker e apresenta erro se ele não iniciar.
 
 O primeiro marco é local. O deploy público previsto no enunciado ocorre na Fase 8, após os fluxos, testes e auditorias. Proposta inicial: hospedagem estática do `dist/` com fallback de rotas para `index.html` (Vercel ou equivalente). O build de demonstração deverá incluir worker MSW e eventos simulados, sem serviço privado. Provedor, repositório remoto e URL pública ainda não estão definidos.
 
