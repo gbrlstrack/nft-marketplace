@@ -10,6 +10,7 @@ import type {
 } from '../../contracts'
 import { nftFixtures } from '../fixtures'
 import { setMockScenario } from '../scenarios'
+import { registrationEns } from './ens'
 import {
   createPassword,
   readDatabase,
@@ -244,13 +245,14 @@ export const accountHandlers = [
           invalid({ name: 'Este nome de usuário já está em uso.' })
         }
         assertUnique(database, email, username)
+        const userId = crypto.randomUUID()
         const profile: Profile = {
-          id: crypto.randomUUID(),
+          id: userId,
           name: username,
           username,
           email,
           avatar: null,
-          ensName: `${username}.eth`,
+          ensName: registrationEns(username, userId),
           walletAlias: `Carteira de ${username}`,
           bio: '',
           version: 1,
