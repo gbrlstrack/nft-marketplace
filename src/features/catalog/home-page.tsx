@@ -10,7 +10,7 @@ export function HomePage() {
           <p className="mb-4 text-sm font-semibold tracking-wider">
             Bem-vindo à Kurio
           </p>
-          <h1 className="max-w-xl text-3xl leading-snug font-bold uppercase md:text-5xl">
+          <h1 className="max-w-xl text-3xl leading-snug font-bold tracking-normal uppercase md:text-[43px] md:leading-[70px]">
             Seja dono do futuro da arte digital
           </h1>
           <p className="mt-5 max-w-lg text-sm leading-relaxed text-muted-foreground">
