@@ -26,7 +26,7 @@ export function NftPage() {
         <span className="sr-only">Carregando NFT</span>
       </div>
     )
-  if (query.isError) {
+  if (query.isError && !query.data) {
     const missing =
       isAxiosError(query.error) && query.error.response?.status === 404
     return (
@@ -50,7 +50,27 @@ export function NftPage() {
       </div>
     )
   }
-  return <NftDetails key={query.data.id} nft={query.data} />
+  return (
+    <>
+      {query.isError && (
+        <div
+          role="alert"
+          className="mb-6 rounded-lg border border-border p-4 text-sm"
+        >
+          Não foi possível atualizar esta obra. Os últimos dados carregados
+          continuam visíveis.
+          <Button
+            variant="ghost"
+            className="ml-2"
+            onClick={() => void query.refetch()}
+          >
+            Tentar novamente
+          </Button>
+        </div>
+      )}
+      <NftDetails key={query.data.id} nft={query.data} />
+    </>
+  )
 }
 
 function NftDetails({ nft }: { nft: Nft }) {
