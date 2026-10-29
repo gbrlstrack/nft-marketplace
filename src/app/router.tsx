@@ -8,6 +8,8 @@ import { Shell } from '@/app/shell'
 import { NotFoundPage } from '@/app/not-found-page'
 import { HomePage } from '@/features/catalog/home-page'
 import { queryClient } from '@/lib/query-client'
+import { validateCatalogSearch } from '@/features/catalog/search'
+import { NftPage } from '@/features/catalog/nft-page'
 
 const rootRoute = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   component: Shell,
@@ -17,11 +19,18 @@ const rootRoute = createRootRouteWithContext<{ queryClient: QueryClient }>()({
 export const catalogRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
+  validateSearch: validateCatalogSearch,
   component: HomePage,
 })
 
+const nftRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/nfts/$nftId',
+  component: NftPage,
+})
+
 export const router = createRouter({
-  routeTree: rootRoute.addChildren([catalogRoute]),
+  routeTree: rootRoute.addChildren([catalogRoute, nftRoute]),
   context: { queryClient },
   defaultPreload: 'intent',
   scrollRestoration: true,

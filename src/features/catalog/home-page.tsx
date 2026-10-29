@@ -1,5 +1,6 @@
 import { ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { CatalogSection } from './catalog-section'
 
 export function HomePage() {
   return (
@@ -29,15 +30,7 @@ export function HomePage() {
           aria-label="Composição geométrica abstrata em tons de cobre"
         />
       </section>
-      <section id="catalogo" className="scroll-mt-6">
-        <p className="text-xs tracking-wider text-primary uppercase">
-          O próximo item da sua coleção
-        </p>
-        <h2 className="mt-2 text-2xl font-bold">Todos os NFTs</h2>
-        <p className="mt-6 text-sm text-muted-foreground">
-          O catálogo está em preparação.
-        </p>
-      </section>
+      <CatalogSection />
     </>
   )
 }

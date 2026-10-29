@@ -11,7 +11,10 @@ export function parseEth(value: string): bigint {
 export function ethFromWei(value: bigint): string {
   if (value < 0n) throw new RangeError('Valor ETH negativo.')
   const whole = value / WEI_PER_ETH
-  const fraction = (value % WEI_PER_ETH).toString().padStart(18, '0').replace(/0+$/, '')
+  const fraction = (value % WEI_PER_ETH)
+    .toString()
+    .padStart(18, '0')
+    .replace(/0+$/, '')
   return fraction ? `${whole}.${fraction}` : whole.toString()
 }
 

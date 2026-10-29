@@ -9,10 +9,24 @@ import '@/styles/globals.css'
 const container = document.getElementById('root')
 if (!container) throw new Error('Elemento raiz não encontrado.')
 
-createRoot(container).render(
-  <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>
-  </StrictMode>,
-)
+async function bootstrap() {
+  if (import.meta.env.VITE_ENABLE_MOCKS === 'true') {
+    const { startMocking } = await import('@/mocks/browser')
+    await startMocking()
+  }
+  createRoot(container!).render(
+    <StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>
+    </StrictMode>,
+  )
+}
+
+void bootstrap().catch(() => {
+  const message = document.createElement('p')
+  message.setAttribute('role', 'alert')
+  message.textContent =
+    'Não foi possível iniciar a aplicação. Recarregue a página para tentar novamente.'
+  container.replaceChildren(message)
+})
