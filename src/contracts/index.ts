@@ -232,6 +232,12 @@ export type QuoteResponse = Quote
 export interface CheckoutCollector {
   name: string
   email: string
+  username: string
+  profileName: string
+  ensName: string
+  referralCode: string
+  secondaryAddress: string
+  notes: string
 }
 
 export interface CreateOrderRequest {
