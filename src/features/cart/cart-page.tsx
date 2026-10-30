@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
+import { Minus, Plus, Trash2 } from 'lucide-react'
 import type { Cart, CartItem } from '@/contracts'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -112,7 +113,10 @@ export function CartPage() {
               </p>
             )}
             <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
-              <ul aria-label="Itens do carrinho" className="space-y-4">
+              <ul
+                aria-label="Itens do carrinho"
+                className="@container space-y-4"
+              >
                 {cart.data.items.map((item) => (
                   <CartLine
                     key={`${item.id}:${item.quantity}`}
@@ -268,51 +272,56 @@ function CartLine({
     if (!invalid && value !== item.quantity && !busy) update(value)
   }
   return (
-    <li className="min-w-0 rounded-lg bg-card p-4">
-      <div className="flex items-start gap-4">
-        <img
-          src={item.nft.image.src}
-          alt={item.nft.image.alt}
-          width={80}
-          height={80}
-          className="size-16 shrink-0 rounded-md object-cover sm:size-20"
-        />
-        <div className="min-w-0 flex-1">
-          <h2 className="text-sm font-bold">
-            <Link to="/nfts/$nftId" params={{ nftId: item.nftId }}>
-              {item.nft.name}
-            </Link>
-          </h2>
+    <li className="grid min-w-0 grid-cols-[70px_minmax(0,1fr)_44px] items-center gap-x-4 gap-y-3 bg-card pb-3 @[44rem]:grid-cols-[70px_minmax(0,1.3fr)_minmax(0,1fr)_auto_minmax(0,1fr)_44px] @[44rem]:pb-0">
+      <img
+        src={item.nft.image.src}
+        alt={item.nft.image.alt}
+        width={70}
+        height={70}
+        className="size-[70px] rounded-md object-cover"
+      />
+      <div className="min-w-0 py-1">
+        <h2 className="text-base leading-5 font-bold">
+          <Link
+            to="/nfts/$nftId"
+            params={{ nftId: item.nftId }}
+            className="break-words"
+          >
+            {item.nft.name}
+          </Link>
+        </h2>
+        <p className="mt-1 break-all text-xs text-[#b4935f]">
+          ID do token: {item.nftId}
+        </p>
+        {item.nft.editions.length > 1 && (
           <p className="mt-1 text-xs text-muted-foreground">{edition?.label}</p>
-          <p className="mt-2 break-all text-sm text-primary">
-            {edition
-              ? `${formatEth(edition.priceEth)} ETH`
-              : 'Edição indisponível'}
-          </p>
-        </div>
-        <button
-          aria-label={`Remover ${item.nft.name}`}
-          disabled={busy}
-          onClick={remove}
-          className="min-h-11 rounded-md px-2 text-xs text-primary underline disabled:opacity-50"
-        >
-          Remover
-        </button>
+        )}
       </div>
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
-        <div>
+      <div className="col-span-full grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-3 @[44rem]:contents">
+        <p
+          aria-label="Preço unitário"
+          className="min-w-0 break-all text-sm font-bold text-muted-foreground @[44rem]:text-center @[44rem]:text-base"
+        >
+          {edition
+            ? `${formatEth(edition.priceEth)} ETH`
+            : 'Edição indisponível'}
+        </p>
+        <div className="min-w-0">
           <label className="sr-only" htmlFor={inputId}>
             Quantidade de {item.nft.name}
           </label>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
+          <div className="flex items-center justify-center">
+            <button
+              type="button"
               disabled={busy || item.quantity <= 1}
               aria-label={`Diminuir quantidade de ${item.nft.name}`}
               onClick={() => update(item.quantity - 1)}
+              className="group flex min-h-11 w-9 shrink-0 items-center justify-center rounded-md disabled:opacity-50"
             >
-              −
-            </Button>
+              <span className="flex h-7 w-[18px] items-center justify-center rounded-full bg-primary text-primary-foreground group-hover:bg-primary/85">
+                <Minus aria-hidden="true" className="size-3" />
+              </span>
+            </button>
             <input
               id={inputId}
               type="number"
@@ -328,16 +337,19 @@ function CartLine({
               }}
               aria-invalid={invalid}
               aria-describedby={invalid ? `${inputId}-error` : undefined}
-              className="min-h-11 w-16 rounded-md border border-border bg-background px-2 text-center text-sm"
+              className="min-h-11 w-7 min-w-0 rounded-sm border-0 bg-transparent p-0 text-center text-base [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
             />
-            <Button
-              variant="outline"
+            <button
+              type="button"
               disabled={busy || item.quantity >= available}
               aria-label={`Aumentar quantidade de ${item.nft.name}`}
               onClick={() => update(item.quantity + 1)}
+              className="group flex min-h-11 w-9 shrink-0 items-center justify-center rounded-md disabled:opacity-50"
             >
-              +
-            </Button>
+              <span className="flex h-7 w-[18px] items-center justify-center rounded-full bg-primary text-primary-foreground group-hover:bg-primary/85">
+                <Plus aria-hidden="true" className="size-3" />
+              </span>
+            </button>
           </div>
           {invalid && (
             <p id={`${inputId}-error`} className="mt-2 text-xs text-primary">
@@ -347,12 +359,24 @@ function CartLine({
             </p>
           )}
         </div>
-        <p className="break-all text-sm font-bold text-primary">
+        <p
+          aria-label="Total do item"
+          className="min-w-0 text-right break-all text-sm font-bold text-primary @[44rem]:text-center @[44rem]:text-base"
+        >
           {edition
             ? `${ethFromWei(parseEth(edition.priceEth) * BigInt(item.quantity))} ETH`
             : 'Indisponível'}
         </p>
       </div>
+      <button
+        type="button"
+        aria-label={`Remover ${item.nft.name}`}
+        disabled={busy}
+        onClick={remove}
+        className="col-start-3 row-start-1 flex size-11 items-center justify-center rounded-md text-[#b4935f] hover:bg-muted hover:text-primary disabled:opacity-50 @[44rem]:col-start-6"
+      >
+        <Trash2 aria-hidden="true" className="size-5" strokeWidth={1.5} />
+      </button>
     </li>
   )
 }
