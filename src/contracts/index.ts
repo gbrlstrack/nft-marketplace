@@ -13,6 +13,8 @@ export interface ImageAsset {
 }
 
 export type NftCategory = 'art' | 'photography' | 'music'
+/** Discovery metadata; amounts remain denominated in ETH in this demo. */
+export type NftNetwork = 'ethereum' | 'polygon' | 'solana'
 export type NftSort = 'featured' | 'price-asc' | 'price-desc' | 'name'
 
 export interface NftEdition {
@@ -28,6 +30,7 @@ export interface Nft {
   description: string
   collection: string
   category: NftCategory
+  network?: NftNetwork
   creator: { id: EntityId; name: string }
   image: ImageAsset
   gallery: ImageAsset[]
@@ -39,6 +42,9 @@ export interface CatalogSearch {
   q?: string
   category?: NftCategory
   collection?: string
+  network?: NftNetwork
+  minPrice?: EthAmount
+  maxPrice?: EthAmount
   sort?: NftSort
   page?: number
 }
@@ -52,8 +58,10 @@ export interface NftListResponse {
   total: number
   page: number
   pageSize: number
-  /** Counts before category/pagination, retaining the active text/collection filters. */
+  /** Counts before category/pagination, retaining network, price and text filters. */
   categoryCounts?: Record<NftCategory, number>
+  /** Counts before network/pagination, retaining category, price and text filters. */
+  networkCounts?: Record<NftNetwork, number>
 }
 
 export type NftDetailResponse = Nft

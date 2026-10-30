@@ -1,4 +1,4 @@
-import type { Nft, NftCategory } from '../contracts'
+import type { Nft, NftCategory, NftNetwork } from '../contracts'
 
 const names = [
   'Chromatic Drift',
@@ -55,6 +55,7 @@ const prices = [
 ] as const
 
 const categories: NftCategory[] = ['art', 'photography', 'music']
+const networks: NftNetwork[] = ['ethereum', 'polygon', 'solana']
 const collections = ['Chromatic', 'Still Life', 'Sound Waves'] as const
 const creators = [
   { id: 'maya-silva', name: 'Maya Silva' },
@@ -84,6 +85,7 @@ export const nftFixtures: Nft[] = names.map((name, index) => {
       'Obra e dados de demonstração; nenhuma transação blockchain é realizada.',
     collection: collections[Math.floor(index / 3) % collections.length],
     category: categories[index % categories.length],
+    network: networks[Math.floor(index / 3) % networks.length],
     creator: { ...creators[index % creators.length] },
     image: {
       src: `/artworks/${artworks[index % artworks.length]}.svg`,

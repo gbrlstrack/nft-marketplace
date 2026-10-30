@@ -54,7 +54,7 @@ export interface CommerceState {
 }
 
 export function commerce(database: AccountDatabase): CommerceState {
-  return (database.commerce ??= {
+  const state = (database.commerce ??= {
     catalog: structuredClone(nftFixtures),
     carts: {},
     retiredGuestIds: [],
@@ -64,6 +64,14 @@ export function commerce(database: AccountDatabase): CommerceState {
     fees: { ethereum: '0.016', sepolia: '0.001' },
     expiredCoupons: [],
   })
+  for (const nft of state.catalog) {
+    if (nft.network !== undefined) continue
+    nft.network =
+      nftFixtures.find((fixture) => fixture.id === nft.id)?.network ??
+      'ethereum'
+    nft.version += 1
+  }
+  return state
 }
 
 export function unauthorized(reason: 'missing' | 'invalid' | 'expired'): never {

@@ -5,88 +5,21 @@ import type {
   ApiError,
   ApiErrorResponse,
   Nft,
-  NftCategory,
   NftDetailResponse,
-  NftListRequest,
   NftListResponse,
   NftSort,
 } from '../contracts'
-import { parseEth } from '../lib/eth'
+import {
+  availablePrice,
+  filterCatalog,
+  parseCatalogListRequest,
+} from './catalog-filters.ts'
 import { readDatabase } from './account/database'
 import { commerce } from './commerce/model'
 import { catalogDelayMs, getMockScenario } from './scenarios'
 
-const validCategories: NftCategory[] = ['art', 'photography', 'music']
-const validSorts: NftSort[] = ['featured', 'price-asc', 'price-desc', 'name']
-
-function normalize(value: string): string {
-  return value
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase()
-    .trim()
-}
-
 function errorResponse(error: ApiError, status: number) {
   return HttpResponse.json<ApiErrorResponse>({ error }, { status })
-}
-
-function parseListRequest(url: URL): NftListRequest | ApiError {
-  const params = url.searchParams
-  const category = params.get('category')
-  const sort = params.get('sort') ?? 'featured'
-  const pageValue = params.get('page') ?? '1'
-  const pageSizeValue = params.get('pageSize') ?? '8'
-  const page = Number(pageValue)
-  const pageSize = Number(pageSizeValue)
-  const fields: Record<string, string> = {}
-
-  if (category && !validCategories.includes(category as NftCategory)) {
-    fields.category = 'Escolha uma categoria disponível.'
-  }
-  if (!validSorts.includes(sort as NftSort)) {
-    fields.sort = 'Escolha uma ordenação disponível.'
-  }
-  if (!/^\d+$/.test(pageValue) || !Number.isSafeInteger(page) || page < 1) {
-    fields.page = 'A página deve ser um inteiro maior que zero.'
-  }
-  if (
-    !/^\d+$/.test(pageSizeValue) ||
-    !Number.isSafeInteger(pageSize) ||
-    pageSize < 1 ||
-    pageSize > 48
-  ) {
-    fields.pageSize =
-      'A quantidade por página deve ser um inteiro entre 1 e 48.'
-  }
-  if (Object.keys(fields).length > 0) {
-    return {
-      code: 'validation',
-      message: 'Confira os filtros enviados.',
-      fields,
-    }
-  }
-
-  return {
-    q: params.get('q') ?? '',
-    category: (category || undefined) as NftCategory | undefined,
-    collection: params.get('collection') ?? '',
-    sort: sort as NftSort,
-    page,
-    pageSize,
-  }
-}
-
-/** Price sorts compare the cheapest available edition in wei, never Number. */
-function availablePrice(nft: Nft): bigint | null {
-  const prices = nft.editions
-    .filter((edition) => edition.available > 0)
-    .map((edition) => parseEth(edition.priceEth))
-
-  return prices.reduce<bigint | null>(
-    (minimum, price) => (minimum === null || price < minimum ? price : minimum),
-    null,
-  )
 }
 
 function sortNfts(items: Nft[], sort: NftSort): Nft[] {
@@ -145,33 +78,15 @@ export const handlers = [
     const networkFailure = await simulateNetwork(url)
     if (networkFailure) return networkFailure
 
-    const search = parseListRequest(url)
+    const search = parseCatalogListRequest(url)
     if ('code' in search) return errorResponse(search, 422)
 
-    const query = normalize(search.q ?? '')
-    const collection = normalize(search.collection ?? '')
-    const matching =
+    const { items, categoryCounts, networkCounts } = filterCatalog(
       getMockScenario() === 'empty'
         ? []
-        : commerce(await readDatabase()).catalog.filter((nft) => {
-            const searchable = normalize(
-              `${nft.name} ${nft.collection} ${nft.creator.name}`,
-            )
-            return (
-              (!query || searchable.includes(query)) &&
-              (!collection || normalize(nft.collection) === collection)
-            )
-          })
-
-    const items = matching.filter(
-      (nft) => !search.category || nft.category === search.category,
+        : commerce(await readDatabase()).catalog,
+      search,
     )
-    const categoryCounts = Object.fromEntries(
-      validCategories.map((category) => [
-        category,
-        matching.filter((nft) => nft.category === category).length,
-      ]),
-    ) as Record<NftCategory, number>
     const sorted = sortNfts(items, search.sort ?? 'featured')
     const page = search.page ?? 1
     const pageSize = search.pageSize ?? 8
@@ -183,6 +98,7 @@ export const handlers = [
       page,
       pageSize,
       categoryCounts,
+      networkCounts,
     })
   }),
   http.get('/api/nfts/:id', async ({ request, params }) => {
