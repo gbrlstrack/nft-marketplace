@@ -15,7 +15,9 @@ export interface ImageAsset {
 export type NftCategory = 'art' | 'photography' | 'music'
 /** Discovery metadata; amounts remain denominated in ETH in this demo. */
 export type NftNetwork = 'ethereum' | 'polygon' | 'solana'
-export type NftSort = 'featured' | 'price-asc' | 'price-desc' | 'name'
+export type CatalogFeed = 'new' | 'trending'
+export type NftSort =
+  'featured' | 'popular' | 'price-asc' | 'price-desc' | 'name'
 
 export interface NftEdition {
   id: EntityId
@@ -31,6 +33,9 @@ export interface Nft {
   collection: string
   category: NftCategory
   network?: NftNetwork
+  listedAt?: IsoDateTime
+  /** Mock discovery score from 0 to 100; does not represent real market data. */
+  popularityScore?: number
   creator: { id: EntityId; name: string }
   image: ImageAsset
   gallery: ImageAsset[]
@@ -39,6 +44,7 @@ export interface Nft {
 }
 
 export interface CatalogSearch {
+  feed?: CatalogFeed
   q?: string
   category?: NftCategory
   collection?: string

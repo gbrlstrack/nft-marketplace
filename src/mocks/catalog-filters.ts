@@ -1,5 +1,6 @@
 import type {
   ApiError,
+  CatalogFeed,
   Nft,
   NftCategory,
   NftListRequest,
@@ -10,7 +11,19 @@ import { parseEth } from '../lib/eth.ts'
 
 const categories: NftCategory[] = ['art', 'photography', 'music']
 const networks: NftNetwork[] = ['ethereum', 'polygon', 'solana']
-const sorts: NftSort[] = ['featured', 'price-asc', 'price-desc', 'name']
+const sorts: NftSort[] = [
+  'featured',
+  'popular',
+  'price-asc',
+  'price-desc',
+  'name',
+]
+const feeds: CatalogFeed[] = ['new', 'trending']
+
+/** Fixed catalogue clock keeps the demo's release window reproducible. */
+export const catalogReferenceDate = '2026-10-30T00:00:00.000Z'
+const releaseCutoff =
+  Date.parse(catalogReferenceDate) - 30 * 24 * 60 * 60 * 1000
 
 function normalize(value: string): string {
   return value
@@ -24,7 +37,9 @@ export function parseCatalogListRequest(url: URL): NftListRequest | ApiError {
   const params = url.searchParams
   const category = params.get('category') || undefined
   const network = params.get('network') || undefined
-  const sort = params.get('sort') ?? 'featured'
+  const feed = params.get('feed') || undefined
+  const sort =
+    params.get('sort') ?? (feed === 'trending' ? 'popular' : 'featured')
   const pageValue = params.get('page') ?? '1'
   const pageSizeValue = params.get('pageSize') ?? '8'
   const page = Number(pageValue)
@@ -34,6 +49,8 @@ export function parseCatalogListRequest(url: URL): NftListRequest | ApiError {
     fields.category = 'Escolha uma categoria disponível.'
   if (network && !networks.includes(network as NftNetwork))
     fields.network = 'Escolha Ethereum, Polygon ou Solana.'
+  if (feed && !feeds.includes(feed as CatalogFeed))
+    fields.feed = 'Escolha novos lançamentos ou em alta.'
   if (!sorts.includes(sort as NftSort))
     fields.sort = 'Escolha uma ordenação disponível.'
   if (!/^\d+$/.test(pageValue) || !Number.isSafeInteger(page) || page < 1)
@@ -78,6 +95,7 @@ export function parseCatalogListRequest(url: URL): NftListRequest | ApiError {
     category: category as NftCategory | undefined,
     collection: params.get('collection') ?? '',
     network: network as NftNetwork | undefined,
+    feed: feed as CatalogFeed | undefined,
     minPrice,
     maxPrice,
     sort: sort as NftSort,
@@ -103,6 +121,17 @@ export function filterCatalog(catalog: Nft[], search: NftListRequest) {
   const maxPrice =
     search.maxPrice === undefined ? null : parseEth(search.maxPrice)
   const matching = catalog.filter((nft) => {
+    if (search.feed === 'new') {
+      const listedAt = nft.listedAt ? Date.parse(nft.listedAt) : NaN
+      if (
+        !Number.isFinite(listedAt) ||
+        listedAt < releaseCutoff ||
+        listedAt > Date.parse(catalogReferenceDate)
+      )
+        return false
+    }
+    if (search.feed === 'trending' && (nft.popularityScore ?? 0) < 70)
+      return false
     if (
       query &&
       !normalize(`${nft.name} ${nft.collection} ${nft.creator.name}`).includes(

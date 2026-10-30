@@ -86,6 +86,8 @@ export const nftFixtures: Nft[] = names.map((name, index) => {
     collection: collections[Math.floor(index / 3) % collections.length],
     category: categories[index % categories.length],
     network: networks[Math.floor(index / 3) % networks.length],
+    listedAt: new Date(Date.UTC(2026, 9, 30 - index * 3)).toISOString(),
+    popularityScore: 40 + ((index * 17 + 11) % 61),
     creator: { ...creators[index % creators.length] },
     image: {
       src: `/artworks/${artworks[index % artworks.length]}.svg`,

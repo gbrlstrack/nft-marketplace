@@ -65,11 +65,21 @@ export function commerce(database: AccountDatabase): CommerceState {
     expiredCoupons: [],
   })
   for (const nft of state.catalog) {
-    if (nft.network !== undefined) continue
-    nft.network =
-      nftFixtures.find((fixture) => fixture.id === nft.id)?.network ??
-      'ethereum'
-    nft.version += 1
+    const fixture = nftFixtures.find((fixture) => fixture.id === nft.id)
+    let changed = false
+    if (nft.network === undefined) {
+      nft.network = fixture?.network ?? 'ethereum'
+      changed = true
+    }
+    if (nft.listedAt === undefined) {
+      nft.listedAt = fixture?.listedAt ?? '2026-08-01T00:00:00.000Z'
+      changed = true
+    }
+    if (nft.popularityScore === undefined) {
+      nft.popularityScore = fixture?.popularityScore ?? 0
+      changed = true
+    }
+    if (changed) nft.version += 1
   }
   return state
 }

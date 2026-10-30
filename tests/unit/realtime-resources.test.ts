@@ -12,6 +12,29 @@ import {
 } from '../../src/features/realtime/resources.ts'
 
 const timestamp = '2026-10-30T00:00:00.000Z'
+test('metadados de descoberta são opcionais em eventos legados e validados quando presentes', () => {
+  assert.equal(validMarketplaceEvent(nftEvent(1)), true)
+  for (const popularityScore of [0, 70, 100]) {
+    const event = nftEvent(1)
+    event.data.listedAt = timestamp
+    event.data.popularityScore = popularityScore
+    assert.equal(validMarketplaceEvent(event), true)
+  }
+  for (const data of [
+    { listedAt: 'invalid' },
+    { popularityScore: -1 },
+    { popularityScore: 101 },
+    { popularityScore: 1.5 },
+    { popularityScore: '70' },
+  ]) {
+    const event = nftEvent(1)
+    assert.equal(
+      validMarketplaceEvent({ ...event, data: { ...event.data, ...data } }),
+      false,
+    )
+  }
+})
+
 function nft(version: number, id = 'nft-1'): Nft {
   return {
     id,

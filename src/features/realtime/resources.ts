@@ -41,6 +41,9 @@ function nft(value: unknown): value is Nft {
     ['art', 'photography', 'music'].includes(String(value.category)) &&
     (value.network === undefined ||
       ['ethereum', 'polygon', 'solana'].includes(String(value.network))) &&
+    (value.listedAt === undefined || date(value.listedAt)) &&
+    (value.popularityScore === undefined ||
+      (integer(value.popularityScore, 0) && value.popularityScore <= 100)) &&
     object(value.creator) &&
     id(value.creator.id) &&
     id(value.creator.name) &&

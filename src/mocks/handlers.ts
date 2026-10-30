@@ -24,6 +24,16 @@ function errorResponse(error: ApiError, status: number) {
 
 function sortNfts(items: Nft[], sort: NftSort): Nft[] {
   return items.sort((left, right) => {
+    if (sort === 'featured') {
+      const byDate =
+        (Date.parse(right.listedAt ?? '') || 0) -
+        (Date.parse(left.listedAt ?? '') || 0)
+      if (byDate) return byDate
+    }
+    if (sort === 'popular') {
+      const byScore = (right.popularityScore ?? 0) - (left.popularityScore ?? 0)
+      if (byScore) return byScore
+    }
     if (sort === 'name') {
       return (
         left.name.localeCompare(right.name, 'en') ||
@@ -87,7 +97,10 @@ export const handlers = [
         : commerce(await readDatabase()).catalog,
       search,
     )
-    const sorted = sortNfts(items, search.sort ?? 'featured')
+    const sorted = sortNfts(
+      items,
+      search.sort ?? (search.feed === 'trending' ? 'popular' : 'featured'),
+    )
     const page = search.page ?? 1
     const pageSize = search.pageSize ?? 8
     const start = (page - 1) * pageSize
