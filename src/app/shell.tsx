@@ -19,6 +19,7 @@ import { getErrorMessage } from '@/lib/api-error'
 import { CartNavigation } from '@/features/cart/cart-navigation'
 import { RealtimeLifecycle } from '@/features/realtime/lifecycle'
 import { useRealtime } from '@/features/realtime/state'
+import { Footer } from '@/app/footer'
 
 export function Shell() {
   const session = useSession()
@@ -186,12 +187,7 @@ export function Shell() {
           <Outlet />
         )}
       </main>
-      <footer className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 border-t border-border px-5 py-8 text-xs text-muted-foreground md:px-8">
-        <span className="font-bold tracking-[0.15em] text-foreground">
-          KURIO
-        </span>
-        <p>Propriedade digital para todos. Ambiente de demonstração.</p>
-      </footer>
+      <Footer />
     </>
   )
 }
