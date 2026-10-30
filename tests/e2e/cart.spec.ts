@@ -3,6 +3,7 @@ import type { Page } from '@playwright/test'
 import type { Cart } from '../../src/contracts'
 
 async function mockControl(page: Page, path: string, body?: unknown) {
+  await expect(page.getByRole('main')).toBeVisible()
   const status = await page.evaluate(
     async ({ path, body }) => {
       const response = await fetch(`/api/__mock/${path}`, {

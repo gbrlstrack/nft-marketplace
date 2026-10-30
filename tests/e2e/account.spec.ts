@@ -5,6 +5,7 @@ import type { Locator, Page } from '@playwright/test'
 const demoPassword = 'Demo123!'
 
 async function mockControl(page: Page, path: string, body?: unknown) {
+  await expect(page.getByRole('main')).toBeVisible()
   const status = await page.evaluate(
     async ({ path, body }) => {
       const response = await fetch(`/api/__mock/${path}`, {

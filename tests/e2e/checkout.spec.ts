@@ -3,6 +3,7 @@ import type { Page, Request } from '@playwright/test'
 import type { Cart, Order } from '../../src/contracts'
 
 async function mockControl(page: Page, path: string, body?: unknown) {
+  await expect(page.getByRole('main')).toBeVisible()
   const status = await page.evaluate(
     async ({ path, body }) => {
       const response = await fetch(`/api/__mock/${path}`, {
@@ -441,15 +442,26 @@ for (const change of [
     await prepareCheckout(page)
     const requests = captureOrderRequests(page)
     await mockControl(page, change.path, change.body)
-    await page
-      .getByRole('button', { name: 'Confirmar compra', exact: true })
-      .click()
-    await expect(
-      page
-        .getByRole('alert')
-        .filter({ hasText: /mudaram|revise/i })
-        .first(),
-    ).toBeVisible()
+    if (change.label === 'preço') {
+      await expect(
+        page.getByRole('button', { name: 'Confirmar compra', exact: true }),
+      ).toHaveCount(0)
+      await expect(
+        page
+          .getByRole('status')
+          .filter({ hasText: /Preço ou disponibilidade/ }),
+      ).toBeVisible()
+    } else {
+      await page
+        .getByRole('button', { name: 'Confirmar compra', exact: true })
+        .click()
+      await expect(
+        page
+          .getByRole('alert')
+          .filter({ hasText: /mudaram|revise/i })
+          .first(),
+      ).toBeVisible()
+    }
     expect(requests).toHaveLength(0)
     await expect(
       page.getByRole('heading', { name: 'Revise sua compra', exact: true }),
@@ -473,9 +485,9 @@ test('edição esgotada depois da revisão não cria pedido e mantém o item par
     editionId: 'nft-001-standard',
     available: 0,
   })
-  await page
-    .getByRole('button', { name: 'Confirmar compra', exact: true })
-    .click()
+  await expect(
+    page.getByRole('button', { name: 'Confirmar compra', exact: true }),
+  ).toHaveCount(0)
   await expect(
     page
       .getByRole('alert')
