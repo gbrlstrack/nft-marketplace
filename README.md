@@ -4,6 +4,8 @@ Implementação em andamento do [desafio](docs/plan/requisitos.md). A Fase 6 int
 
 Disponível: busca, filtros combinados de categoria/coleção, faixa de preço e rede (Ethereum, Polygon e Solana), ordenação, paginação e histórico na URL; galeria e seleção de edição/quantidade; loading com shimmer, vazio, falhas recuperáveis, menu mobile acessível e rotas inexistentes. Valores ETH preservam até 18 casas decimais com cálculos inteiros em wei.
 
+O catálogo tem abas “Todos os NFTs”, “Novos lançamentos” e “Em alta”, com navegação por teclado e estado na URL. Lançamentos usam os últimos 30 dias da referência fixa da demonstração (30/10/2026); popularidade usa um score fictício de 0 a 100, incluindo obras com pelo menos 70 pontos. “Em alta” começa por popularidade quando não há ordenação explícita. O seletor à direita mantém as opções de preço/nome e a aplicação pelo botão “Aplicar filtros”. A paginação numerada destaca a página atual e usa o total real da API.
+
 Também disponíveis: cadastro/login/logout, recuperação e expiração da sessão, retorno seguro ao fluxo anterior, favoritos com atualização otimista/rollback, perfil/avatar/senha e cadastro/edição/conexão simulada de carteiras. Dados privados usam usuário e ciclo da sessão na chave de cache; operações de autenticação concorrentes são serializadas e reconciliadas com a API.
 
 Carrinho persistente, fusão no login, cupons, revisão do pagamento e recibo imutável estão implementados. Timeout recupera o mesmo pedido por chave de idempotência. Confirmação remove apenas as unidades compradas ainda representadas no carrinho; adições posteriores são preservadas, inclusive após uma redução de quantidade durante a pendência. Recusa conserva o carrinho.
