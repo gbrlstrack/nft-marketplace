@@ -1,6 +1,6 @@
 # Kurio — NFT Marketplace
 
-Implementação em andamento do [desafio](docs/plan/requisitos.md). A Fase 6 integra atualizações Socket.IO e reconciliação REST ao catálogo, carrinho, checkout e pedidos. O [plano de implementação](docs/plan/implementacao.md) mantém as etapas e evidências; a [matriz de aceite](docs/acceptance.md) acompanha o escopo completo.
+Marketplace de NFTs em React e TypeScript, com APIs simuladas e testes automatizados. O projeto integra atualizações Socket.IO e reconciliação REST ao catálogo, carrinho, checkout e pedidos.
 
 Disponível: busca, filtros combinados de categoria/coleção, faixa de preço e rede (Ethereum, Polygon e Solana), ordenação, paginação e histórico na URL; galeria e seleção de edição/quantidade; loading com shimmer, vazio, falhas recuperáveis, menu mobile acessível e rotas inexistentes. Valores ETH preservam até 18 casas decimais com cálculos inteiros em wei.
 
@@ -133,7 +133,7 @@ await fetch('/api/__mock/commerce/scenario', {
 | `pending`           | Mantém o pedido pendente até acionar o controle de conclusão.                             |
 | `offline-orders`    | Falha de rede nas consultas de pedido; dados já recebidos permanecem visíveis.            |
 
-A seleção persiste na chave `kurio:commerce-scenario`. Envie `{ name: 'default' }` para restaurar. Com a conta autenticada, `POST /api/__mock/commerce/settle` com `{ orderId }` conclui somente um pedido próprio; sem ID, conclui os pendentes próprios. Controles de catálogo, taxas e expiração de cupom estão detalhados nos [contratos](docs/api-contracts.md). Alterações do catálogo e conclusões de pedidos também emitem eventos. Leituras REST periódicas do carrinho (2 s) e de pedidos pendentes (500 ms) continuam como recuperação complementar.
+A seleção persiste na chave `kurio:commerce-scenario`. Envie `{ name: 'default' }` para restaurar. Com a conta autenticada, `POST /api/__mock/commerce/settle` com `{ orderId }` conclui somente um pedido próprio; sem ID, conclui os pendentes próprios. Alterações do catálogo e conclusões de pedidos também emitem eventos. Leituras REST periódicas do carrinho (2 s) e de pedidos pendentes (500 ms) continuam como recuperação complementar.
 
 ## Tempo real e cenários
 
@@ -155,7 +155,7 @@ await fetch('/api/__mock/realtime/nft', {
 })
 ```
 
-O controle persiste os valores antes de enviar o evento pelo socket. O resumo muda, a interface anuncia a alteração e a confirmação anterior desaparece até uma nova revisão. `delivery: 'stale'` reenvia uma versão anterior sem regredir a base. Também existe replay por ID, descrito nos [contratos](docs/api-contracts.md).
+O controle persiste os valores antes de enviar o evento pelo socket. O resumo muda, a interface anuncia a alteração e a confirmação anterior desaparece até uma nova revisão. `delivery: 'stale'` reenvia uma versão anterior sem regredir a base.
 
 | Controle                                                                        | Uso                                                                                                                 |
 | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
@@ -184,11 +184,7 @@ Os testes de precisão usam o runner nativo do Node. Ainda não existem comando,
 ## Estrutura e decisões
 
 - [Arquitetura](ARCHITECTURE.md): responsabilidades, cache/retries, cancelamento, decisões de sessão/compra e pendências.
-- [Contratos REST e Socket.IO](docs/api-contracts.md): endpoints, eventos implementados, controles e limites do binding.
-- [Verificações de tempo real](docs/verification-realtime.md): resultados da Fase 6, reconexão, isolamento e regressões.
-- [Verificações de comércio](docs/verification-commerce.md): resultados da Fase 5, regressões e limites atuais.
-- [Inspeção dos protótipos](docs/design-audit.md): inventário das 15 telas exportadas, tokens observados e assets faltantes.
-- [Verificações da conta](docs/verification-account.md): resultados do segundo marco e limites atuais.
-- [Verificações iniciais](docs/verification.md): histórico do primeiro marco.
+
+A documentação de planejamento e verificação permanece local em `docs/`, excluída da publicação no Git.
 
 Nenhum repositório remoto ou deploy foi configurado. O deploy público continua obrigatório no aceite final do desafio.
