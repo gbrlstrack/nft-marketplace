@@ -24,7 +24,11 @@ import {
   resumeOrderSettlements,
   subscribeMockEvents,
 } from './events.ts'
-import { bindSocketProtocol, type MockSocketClient } from './protocol.ts'
+import {
+  bindSocketProtocol,
+  interruptSocketHandshake,
+  type MockSocketClient,
+} from './protocol.ts'
 
 const onlineKey = 'kurio:realtime-online'
 interface Connection {
@@ -137,7 +141,7 @@ const socketHandler = socketLink.addEventListener(
       return
     }
     if (!isOnline()) {
-      client.close(1012, 'Simulated offline transport')
+      interruptSocketHandshake(client)
       return
     }
     const capturedCookies = cookiesNow()

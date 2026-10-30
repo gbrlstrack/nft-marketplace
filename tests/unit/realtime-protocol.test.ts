@@ -4,6 +4,7 @@ import { PacketType } from 'socket.io-parser'
 import {
   bindSocketProtocol,
   engineFrame,
+  interruptSocketHandshake,
   socketFrame,
   type MockSocketClient,
 } from '../../src/mocks/realtime/protocol.ts'
@@ -35,6 +36,28 @@ class TestPeer extends EventTarget {
 }
 
 const nextTurn = () => new Promise<void>((resolve) => setImmediate(resolve))
+
+test('interrupção offline conclui abertura Engine.IO e fecha antes de aprovar namespace', () => {
+  const peer = new TestPeer()
+  interruptSocketHandshake(peer.handle())
+  assert.equal(peer.frames.length, 1)
+  assert.equal(peer.frames[0][0], '0')
+  assert.equal(
+    peer.closed,
+    null,
+    'Manager precisa observar a abertura antes do fechamento',
+  )
+  peer.fromClient('40{"userId":"maya","scope":1}')
+  assert.deepEqual(peer.closed, {
+    code: 1012,
+    reason: 'Simulated offline transport',
+  })
+  assert.equal(
+    peer.frames.length,
+    1,
+    'nenhum CONNECT ack ou evento privado é enviado',
+  )
+})
 
 test('binding envia Engine.IO open e aguarda autenticação antes de aprovar Socket.IO', async () => {
   const peer = new TestPeer()

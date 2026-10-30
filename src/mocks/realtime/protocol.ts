@@ -29,6 +29,38 @@ export function socketFrame(packet: SocketPacket) {
   return engineFrame({ type: 'message', data: frames[0] })
 }
 
+function engineOpen(clientId: string) {
+  return engineFrame({
+    type: 'open',
+    data: JSON.stringify({
+      sid: clientId,
+      upgrades: [],
+      pingInterval: 25_000,
+      pingTimeout: 10_000,
+      maxPayload: 1_000_000,
+    }),
+  })
+}
+
+/**
+ * Finish Engine.IO opening before interrupting it: Socket.IO's Manager only
+ * observes an Engine close after that stage. Never approve its namespace.
+ */
+export function interruptSocketHandshake(client: MockSocketClient) {
+  const interrupt = () => client.close(1012, 'Simulated offline transport')
+  const deadline = setTimeout(interrupt, 1_000)
+  client.addEventListener('message', interrupt, { once: true })
+  client.addEventListener(
+    'close',
+    () => {
+      clearTimeout(deadline)
+      client.removeEventListener('message', interrupt)
+    },
+    { once: true },
+  )
+  client.send(engineOpen(client.id))
+}
+
 /** Engine.IO v4 and the Socket.IO default namespace over text WebSocket frames. */
 export function bindSocketProtocol(
   client: MockSocketClient,
@@ -110,18 +142,7 @@ export function bindSocketProtocol(
     }
   })
   client.addEventListener('close', finish)
-  client.send(
-    engineFrame({
-      type: 'open',
-      data: JSON.stringify({
-        sid: client.id,
-        upgrades: [],
-        pingInterval: 25_000,
-        pingTimeout: 10_000,
-        maxPayload: 1_000_000,
-      }),
-    }),
-  )
+  client.send(engineOpen(client.id))
   return {
     emit(name: string, payload: unknown) {
       if (ready && !closed)
