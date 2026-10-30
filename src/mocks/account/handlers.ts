@@ -13,6 +13,7 @@ import { setMockScenario } from '../scenarios'
 import { registrationEns } from './ens'
 import { mergeGuestCart } from '../commerce/model.ts'
 import { resetCommerceScenario } from '../commerce/handlers.ts'
+import { resetRealtime } from '../realtime/server.ts'
 import {
   createPassword,
   readDatabase,
@@ -367,6 +368,7 @@ export const accountHandlers = [
   http.post('/api/__mock/reset', () =>
     respond(async () => {
       await resetDatabase()
+      resetRealtime()
       resetCommerceScenario()
       if (typeof sessionStorage !== 'undefined')
         sessionStorage.removeItem(accountScenarioKey)

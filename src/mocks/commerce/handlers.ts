@@ -1,7 +1,8 @@
 import { http, HttpResponse } from 'msw/http'
 import { delay } from 'msw/utils/delay'
 import type { ApiErrorResponse } from '../../contracts/index.ts'
-import { readDatabase, writeDatabase } from '../account/database.ts'
+import { readDatabase } from '../account/database.ts'
+import { writeCommerce, scheduleOrderSettlement } from '../realtime/events.ts'
 import { ApiFault, invalid, jsonBody, text } from '../account/validation.ts'
 import { parseEth } from '../../lib/eth.ts'
 import {
@@ -134,7 +135,7 @@ export const commerceHandlers = [
     withCart(
       cookies,
       async (context) => {
-        const cart = await writeDatabase((database) =>
+        const cart = await writeCommerce((database) =>
           cartDto(database, cartFor(database, context)),
         )
         return HttpResponse.json(cart, { headers: cartHeaders(context) })
@@ -145,7 +146,7 @@ export const commerceHandlers = [
   http.post('/api/cart/items', ({ cookies, request }) =>
     withCart(cookies, async (context) => {
       const body = await jsonBody(request)
-      const cart = await writeDatabase((database) =>
+      const cart = await writeCommerce((database) =>
         addItem(database, context, body),
       )
       return HttpResponse.json(cart, { headers: cartHeaders(context) })
@@ -154,7 +155,7 @@ export const commerceHandlers = [
   http.patch('/api/cart/items/:itemId', ({ cookies, request, params }) =>
     withCart(cookies, async (context) => {
       const body = await jsonBody(request)
-      const cart = await writeDatabase((database) =>
+      const cart = await writeCommerce((database) =>
         updateItem(database, context, String(params.itemId), body.quantity),
       )
       return HttpResponse.json(cart, { headers: cartHeaders(context) })
@@ -162,7 +163,7 @@ export const commerceHandlers = [
   ),
   http.delete('/api/cart/items/:itemId', ({ cookies, params }) =>
     withCart(cookies, async (context) => {
-      const cart = await writeDatabase((database) =>
+      const cart = await writeCommerce((database) =>
         removeItem(database, context, String(params.itemId)),
       )
       return HttpResponse.json(cart, { headers: cartHeaders(context) })
@@ -171,7 +172,7 @@ export const commerceHandlers = [
   http.put('/api/cart/coupon', ({ cookies, request }) =>
     withCart(cookies, async (context) => {
       const body = await jsonBody(request)
-      const cart = await writeDatabase((database) =>
+      const cart = await writeCommerce((database) =>
         applyCoupon(database, context, body.couponCode),
       )
       return HttpResponse.json(cart, { headers: cartHeaders(context) })
@@ -180,7 +181,7 @@ export const commerceHandlers = [
   http.post('/api/quotes', ({ cookies, request }) =>
     withCart(cookies, async (context) => {
       const body = await jsonBody(request)
-      const quote = await writeDatabase((database) =>
+      const quote = await writeCommerce((database) =>
         createQuote(database, context, body),
       )
       return HttpResponse.json(quote, {
@@ -194,9 +195,11 @@ export const commerceHandlers = [
       const body = await jsonBody(request)
       const mode = commerceScenario()
       const key = request.headers.get('Idempotency-Key') || ''
-      const result = await writeDatabase((database) =>
+      const result = await writeCommerce((database) =>
         createOrder(database, context, body, key, mode),
       )
+      if (result.order.status === 'pending')
+        void scheduleOrderSettlement(result.order.id)
       if (mode === 'order-timeout' && result.created) await delay(2500)
       return HttpResponse.json(result.order, {
         status: result.created ? 201 : 200,
@@ -206,7 +209,7 @@ export const commerceHandlers = [
   http.get('/api/orders/by-idempotency-key/:key', ({ cookies, params }) =>
     withCart(cookies, async (context) => {
       if (commerceScenario() === 'offline-orders') return HttpResponse.error()
-      const order = await writeDatabase((database) => {
+      const order = await writeCommerce((database) => {
         authorize(database, context, true)
         const entry = commerce(database).idempotency.find(
           (entry) =>
@@ -229,7 +232,7 @@ export const commerceHandlers = [
   http.get('/api/orders/:orderId', ({ cookies, params }) =>
     withCart(cookies, async (context) => {
       if (commerceScenario() === 'offline-orders') return HttpResponse.error()
-      const order = await writeDatabase((database) =>
+      const order = await writeCommerce((database) =>
         settleOrder(
           database,
           ownedOrder(database, context, String(params.orderId)),
@@ -241,7 +244,7 @@ export const commerceHandlers = [
   http.get('/api/orders', ({ cookies }) =>
     withCart(cookies, async (context) => {
       if (commerceScenario() === 'offline-orders') return HttpResponse.error()
-      const items = await writeDatabase((database) => {
+      const items = await writeCommerce((database) => {
         authorize(database, context, true)
         return commerce(database)
           .orders.filter((entry) => entry.order.userId === context.userId)
@@ -268,7 +271,7 @@ export const commerceHandlers = [
         ?.includes('application/json')
         ? await jsonBody(request)
         : {}
-      await writeDatabase((database) => {
+      await writeCommerce((database) => {
         authorize(database, context, true)
         const records = body.orderId
           ? [ownedOrder(database, context, String(body.orderId))]
@@ -284,7 +287,7 @@ export const commerceHandlers = [
   http.post('/api/__mock/commerce/catalog', ({ request }) =>
     respond(async () => {
       const body = await jsonBody(request)
-      const nft = await writeDatabase((database) => {
+      const nft = await writeCommerce((database) => {
         const { nft, edition } = editionFor(
           database,
           text(body, 'nftId'),
@@ -312,7 +315,7 @@ export const commerceHandlers = [
       const body = await jsonBody(request)
       const network = validNetwork(body.network),
         feeEth = decimal(body.feeEth, 'feeEth')
-      await writeDatabase((database) => {
+      await writeCommerce((database) => {
         commerce(database).fees[network] = feeEth
       })
       return HttpResponse.json({ network, feeEth })
@@ -323,7 +326,7 @@ export const commerceHandlers = [
       const body = await jsonBody(request)
       if (body.code !== 'KURIO10')
         invalid({ code: 'Use KURIO10 neste controle.' })
-      await writeDatabase((database) => {
+      await writeCommerce((database) => {
         const state = commerce(database)
         if (!state.expiredCoupons.includes('KURIO10'))
           state.expiredCoupons.push('KURIO10')

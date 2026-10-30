@@ -5,8 +5,10 @@ import { handlers } from './handlers'
 import { initializeMockScenario } from './scenarios'
 import { accountHandlers } from './account/handlers'
 import { commerceHandlers } from './commerce/handlers'
+import { realtimeHandlers } from './realtime/server'
 
 export const worker = setupWorker(
+  ...realtimeHandlers,
   ...commerceHandlers,
   ...accountHandlers,
   ...handlers,
