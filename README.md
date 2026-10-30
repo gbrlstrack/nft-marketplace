@@ -2,7 +2,7 @@
 
 Implementação em andamento do [desafio](docs/plan/requisitos.md). A Fase 6 integra atualizações Socket.IO e reconciliação REST ao catálogo, carrinho, checkout e pedidos. O [plano de implementação](docs/plan/implementacao.md) mantém as etapas e evidências; a [matriz de aceite](docs/acceptance.md) acompanha o escopo completo.
 
-Disponível: busca, filtros combinados de categoria/coleção, ordenação, paginação e histórico na URL; galeria e seleção de edição/quantidade; loading com shimmer, vazio, falhas recuperáveis, menu mobile acessível e rotas inexistentes. Valores ETH preservam até 18 casas decimais com cálculos inteiros em wei.
+Disponível: busca, filtros combinados de categoria/coleção, faixa de preço e rede (Ethereum, Polygon e Solana), ordenação, paginação e histórico na URL; galeria e seleção de edição/quantidade; loading com shimmer, vazio, falhas recuperáveis, menu mobile acessível e rotas inexistentes. Valores ETH preservam até 18 casas decimais com cálculos inteiros em wei.
 
 Também disponíveis: cadastro/login/logout, recuperação e expiração da sessão, retorno seguro ao fluxo anterior, favoritos com atualização otimista/rollback, perfil/avatar/senha e cadastro/edição/conexão simulada de carteiras. Dados privados usam usuário e ciclo da sessão na chave de cache; operações de autenticação concorrentes são serializadas e reconciliadas com a API.
 
@@ -76,6 +76,8 @@ Abra uma das URLs abaixo. O cenário é salvo em `sessionStorage` para sobrevive
 Para recuperar de uma falha do catálogo, abra `/?mockScenario=default`. Para excluir somente essa seleção persistida, remova `nft-marketplace:catalog-scenario` de `sessionStorage` e recarregue sem `mockScenario` na URL. O catálogo inicial é determinístico; compras confirmadas e controles de comércio atualizam o mesmo estoque persistido usado pelo catálogo, detalhe e carrinho.
 
 Exemplo de filtros combinados: `/?q=a&category=art&collection=Chromatic&sort=name`. Detalhe direto: `/nfts/nft-001`; NFT inexistente: `/nfts/inexistente`.
+
+Preço e rede: `/?network=polygon&minPrice=0.2&maxPrice=1.6`. A faixa compara o menor preço entre as edições disponíveis, incluindo os limites. O slider permite ajustar de 0 a 16 ETH, em passos de 0,01 ETH; o botão “Aplicar” confirma a faixa exibida, inicialmente 0,02–12,30 ETH. A seleção de rede aplica o formulário e reinicia a paginação. A URL e a API aceitam limites com até 18 casas sem arredondar. As redes do catálogo são metadados de descoberta da demonstração; os valores continuam em ETH e o pagamento simulado mantém as redes Ethereum/Sepolia.
 
 Os controles de conta são HTTP e só existem com MSW ativo. No console do navegador, depois de abrir a aplicação:
 
