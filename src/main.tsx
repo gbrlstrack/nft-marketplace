@@ -2,7 +2,6 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { RouterProvider } from '@tanstack/react-router'
-import { router } from '@/app/router'
 import { queryClient } from '@/lib/query-client'
 import '@/styles/globals.css'
 
@@ -14,6 +13,9 @@ async function bootstrap() {
     const { startMocking } = await import('@/mocks/browser')
     await startMocking()
   }
+  // Socket.IO captures the WebSocket constructor while its module evaluates.
+  // Load the application graph after MSW installs the network interceptors.
+  const { router } = await import('@/app/router')
   createRoot(container!).render(
     <StrictMode>
       <QueryClientProvider client={queryClient}>

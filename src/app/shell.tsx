@@ -17,14 +17,18 @@ import { isPrivatePath } from '@/features/auth/return-to'
 import { FavoriteNotice } from '@/features/favorites/favorite-button'
 import { getErrorMessage } from '@/lib/api-error'
 import { CartNavigation } from '@/features/cart/cart-navigation'
+import { RealtimeLifecycle } from '@/features/realtime/lifecycle'
+import { useRealtime } from '@/features/realtime/state'
 
 export function Shell() {
   const session = useSession()
+  const realtime = useRealtime()
   const path = useLocation({ select: (location) => location.pathname })
   const logout = useMutation({ mutationFn: logoutSession })
   return (
     <>
       <SessionLifecycle />
+      <RealtimeLifecycle />
       <a
         className="fixed top-3 left-3 z-[100] -translate-y-24 rounded-md bg-primary px-5 py-3 font-bold text-primary-foreground focus:translate-y-0"
         href="#conteudo"
@@ -161,6 +165,17 @@ export function Shell() {
           </p>
         )}
         <FavoriteNotice />
+        <p
+          role="status"
+          aria-label="Atualizações em tempo real"
+          className="mb-5 text-xs text-muted-foreground"
+        >
+          {realtime.status === 'connected'
+            ? 'Atualizações em tempo real conectadas.'
+            : realtime.status === 'offline'
+              ? 'Conexão interrompida. Tentando reconectar…'
+              : 'Conectando atualizações em tempo real…'}
+        </p>
         {isPrivatePath(path) && (!session.user || session.authPending) ? (
           <p role="status">
             {session.authPending

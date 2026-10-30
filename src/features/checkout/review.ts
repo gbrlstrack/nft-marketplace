@@ -1,6 +1,15 @@
 import type { CheckoutCollector, Quote } from '@/contracts'
 import { formatEth } from '@/lib/eth'
 
+export function nftRevisionKey(
+  ids: string[],
+  revisions: Record<string, number>,
+) {
+  return JSON.stringify(
+    [...new Set(ids)].sort().map((id) => [id, revisions[id] || 0]),
+  )
+}
+
 export function quoteFingerprint(quote: Quote): string {
   return JSON.stringify({
     cartId: quote.cartId,

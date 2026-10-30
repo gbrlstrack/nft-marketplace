@@ -9,6 +9,7 @@ import { http } from '@/lib/http'
 import { queryClient } from '@/lib/query-client'
 import { getSessionState, refreshSession } from '@/features/auth/session'
 import { useSession } from '@/features/auth/use-session'
+import { keepLatestCart } from '@/features/realtime/resources'
 
 export function isCommerceScope(scope: number, userId: string | undefined) {
   const current = getSessionState()
@@ -40,9 +41,11 @@ export function cartQueryOptions() {
       if (!isCommerceScope(scope, user?.id))
         throw new Error('A sessão mudou. Tente novamente.')
       const previous = queryClient.getQueryData<CartResponse>(queryKey)
-      return previous?.id === data.id && previous.version > data.version
-        ? previous
-        : data
+      return keepLatestCart(
+        previous?.id === data.id && previous.version > data.version
+          ? previous
+          : data,
+      )
     },
     meta: { private: true },
   }
@@ -126,9 +129,11 @@ function useCartMutation<T>(operation: (request: T) => Promise<CartResponse>) {
     onSuccess: (cart) => {
       if (!isCommerceScope(scope, user?.id)) return
       queryClient.setQueryData<CartResponse>(queryKey, (previous) =>
-        previous?.id === cart.id && previous.version > cart.version
-          ? previous
-          : cart,
+        keepLatestCart(
+          previous?.id === cart.id && previous.version > cart.version
+            ? previous
+            : cart,
+        ),
       )
       void queryClient.invalidateQueries({ queryKey: scopeKey('quote') })
     },

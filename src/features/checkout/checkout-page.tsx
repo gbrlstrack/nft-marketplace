@@ -39,7 +39,9 @@ import {
   writeDraft,
   type PurchaseAttempt,
 } from './storage'
-import { quoteFingerprint, validateCollector } from './review'
+import { nftRevisionKey, quoteFingerprint, validateCollector } from './review'
+import { getRealtimeState, useRealtime } from '@/features/realtime/state'
+import { keepLatestCart } from '@/features/realtime/resources'
 
 export function CheckoutPage() {
   const session = useSession()
@@ -136,7 +138,43 @@ function CheckoutEditor({
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
-  const [review, setReview] = useState<Quote | null>(null)
+  const { nftRevisions } = useRealtime()
+  const [initialNftRevisions] = useState(() => nftRevisions)
+  const [initialNftVersions] = useState(() =>
+    Object.fromEntries(
+      cart.items.map((item) => [item.nftId, item.nft.version]),
+    ),
+  )
+  const nftIds = cart.items.map((item) => item.nftId)
+  const currentNftKey = nftRevisionKey(nftIds, nftRevisions)
+  const [reviewNftKey, setReviewNftKey] = useState('')
+  const [reviewSnapshot, setReview] = useState<Quote | null>(null)
+  const review =
+    reviewNftKey === currentNftKey &&
+    reviewSnapshot?.cartId === cart.id &&
+    reviewSnapshot.cartVersion === cart.version &&
+    reviewSnapshot.couponCode === cart.couponCode &&
+    reviewSnapshot.items.length === cart.items.length &&
+    reviewSnapshot.items.every((reviewed) =>
+      cart.items.some(
+        (item) =>
+          item.id === reviewed.cartItemId &&
+          item.nft.version === reviewed.nftVersion &&
+          item.quantity === reviewed.quantity,
+      ),
+    )
+      ? reviewSnapshot
+      : null
+  const nftChanged = nftIds.some(
+    (id) =>
+      (nftRevisions[id] || 0) > (initialNftRevisions[id] || 0) ||
+      cart.items.some(
+        (item) =>
+          item.nftId === id &&
+          initialNftVersions[id] !== undefined &&
+          item.nft.version > initialNftVersions[id],
+      ),
+  )
   const [connection, setConnection] = useState<WalletConnection | null>(null)
   const connectionRef = useRef<WalletConnection | null>(null)
   const [attempt, setAttempt] = useState(() => readAttempt(userId))
@@ -291,7 +329,7 @@ function CheckoutEditor({
 
   async function freshQuote(): Promise<Quote> {
     if (!active()) throw new Error('A sessão foi encerrada.')
-    const current = (await http.get<Cart>('/cart')).data
+    const current = keepLatestCart((await http.get<Cart>('/cart')).data)
     if (!active() || current.userId !== userId)
       throw new Error('O carrinho retornado não corresponde à sua conta.')
     const quoted = (
@@ -343,6 +381,16 @@ function CheckoutEditor({
     try {
       const fresh = await freshQuote()
       if (active()) {
+        if (
+          currentNftKey !==
+          nftRevisionKey(nftIds, getRealtimeState().nftRevisions)
+        ) {
+          setError(
+            'Preço ou disponibilidade mudou durante a revisão. Revise a compra novamente.',
+          )
+          return
+        }
+        setReviewNftKey(currentNftKey)
         setReview(fresh)
         setNotice('Confira os valores e confirme a compra.')
       }
@@ -415,7 +463,11 @@ function CheckoutEditor({
     try {
       const fresh = await freshQuote()
       if (!active()) return
-      if (quoteFingerprint(fresh) !== quoteFingerprint(review)) {
+      if (
+        reviewNftKey !==
+          nftRevisionKey(nftIds, getRealtimeState().nftRevisions) ||
+        quoteFingerprint(fresh) !== quoteFingerprint(review)
+      ) {
         setReview(null)
         setError(
           'Os valores ou a disponibilidade mudaram. Revise a compra novamente para confirmar.',
@@ -522,6 +574,12 @@ function CheckoutEditor({
         ← Voltar ao carrinho
       </Link>
       <h1 className="mt-6 text-3xl font-bold">Pagamento com carteira</h1>
+      {nftChanged && (
+        <p role="status" className="mt-5 text-sm text-primary">
+          Preço ou disponibilidade de um NFT foi atualizado. Os valores foram
+          recalculados. Revise a compra novamente antes de confirmar.
+        </p>
+      )}
       <div className="mt-8 grid items-start gap-10 lg:grid-cols-[minmax(0,1.4fr)_minmax(20rem,1fr)]">
         <form
           aria-label="Dados do pagamento"

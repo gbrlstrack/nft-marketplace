@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
-import type { CartItem } from '@/contracts'
+import type { Cart, CartItem } from '@/contracts'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useSession } from '@/features/auth/use-session'
@@ -8,6 +8,7 @@ import { getApiError, getErrorMessage } from '@/lib/api-error'
 import { ethFromWei, formatEth, parseEth } from '@/lib/eth'
 import { useCartActions, useCartQuery, useQuoteQuery } from './queries'
 import { QuoteSummary } from './quote-summary'
+import { useRealtime } from '@/features/realtime/state'
 
 export function CartPage() {
   const navigate = useNavigate()
@@ -75,6 +76,7 @@ export function CartPage() {
         ) : (
           <>
             <div className="mb-5 space-y-3" aria-live="polite">
+              <CartUpdatesNotice cart={cart.data} />
               {cart.data.adjustments.map((adjustment) => (
                 <p
                   key={`${adjustment.nftId}:${adjustment.editionId}`}
@@ -218,6 +220,29 @@ export function CartPage() {
       ) : null}
     </section>
   )
+}
+
+function CartUpdatesNotice({ cart }: { cart: Cart }) {
+  const { nftRevisions } = useRealtime()
+  const [initialNftRevisions] = useState(() => nftRevisions)
+  const [initialVersions] = useState(() =>
+    Object.fromEntries(
+      cart.items.map((item) => [item.nftId, item.nft.version]),
+    ),
+  )
+  const changed = cart.items.some(
+    (item) =>
+      (nftRevisions[item.nftId] || 0) >
+        (initialNftRevisions[item.nftId] || 0) ||
+      (initialVersions[item.nftId] !== undefined &&
+        item.nft.version > initialVersions[item.nftId]),
+  )
+  return changed ? (
+    <p role="status" className="text-sm text-primary">
+      Preço ou disponibilidade de um NFT foi atualizado. Os valores foram
+      recalculados.
+    </p>
+  ) : null
 }
 
 function CartLine({

@@ -5,6 +5,7 @@ import type {
   NftListResponse,
 } from '@/contracts'
 import { http } from '@/lib/http'
+import { keepLatestCatalog, keepLatestNft } from '@/features/realtime/resources'
 
 export function catalogOptions(search: CatalogSearch) {
   const params = {
@@ -22,7 +23,7 @@ export function catalogOptions(search: CatalogSearch) {
         params,
         signal,
       })
-      return response.data
+      return keepLatestCatalog(response.data)
     },
   })
 }
@@ -35,7 +36,7 @@ export function nftOptions(nftId: string) {
         `/nfts/${encodeURIComponent(nftId)}`,
         { signal },
       )
-      return response.data
+      return keepLatestNft(response.data)
     },
   })
 }

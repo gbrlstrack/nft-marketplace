@@ -17,6 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { http } from '@/lib/http'
 import { formatEth } from '@/lib/eth'
 import { getErrorMessage } from '@/lib/api-error'
+import { keepLatestOrder } from '@/features/realtime/resources'
 
 export function OrderPage() {
   const { orderId } = useParams({ from: '/orders/$orderId' })
@@ -49,8 +50,8 @@ export function OrderPage() {
         (cached.version >= order.version ||
           (cached.status !== 'pending' && cached.status !== order.status))
       )
-        return cached
-      return order
+        return keepLatestOrder(cached)
+      return keepLatestOrder(order)
     },
     enabled: Boolean(user) && !authPending,
     refetchInterval: (current) =>
