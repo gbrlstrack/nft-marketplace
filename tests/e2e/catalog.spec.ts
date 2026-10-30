@@ -95,7 +95,6 @@ test('filtros combinados, paginação, URL, refresh e histórico preservam os re
   })
   await toolbar.getByLabel('Buscar NFTs', { exact: true }).fill('a')
   await toolbar.getByLabel('Coleção', { exact: true }).fill('Chromatic')
-  await filters.getByText('Arte digital', { exact: true }).click()
   await page
     .getByRole('combobox', { name: 'Ordenar por', exact: true })
     .selectOption('name')
@@ -107,9 +106,7 @@ test('filtros combinados, paginação, URL, refresh e histórico preservam os re
     page: '1',
   }
   const filtered = catalogResponse(page, search)
-  await page
-    .getByRole('button', { name: 'Aplicar filtros', exact: true })
-    .click()
+  await filters.getByText('Arte digital', { exact: true }).click()
   const filteredData: NftListResponse = await (await filtered).json()
   expect(filteredData.total).toBe(3)
   expect(filteredData.categoryCounts).toEqual({

@@ -114,6 +114,9 @@ export function CatalogSection() {
                     name="category"
                     value={category.value}
                     defaultChecked={search.category === category.value}
+                    onChange={(event) =>
+                      event.currentTarget.form?.requestSubmit()
+                    }
                     className="peer sr-only"
                   />
                   <span className="flex min-h-10 items-center justify-between gap-4 rounded-sm px-3 text-sm text-[#cdb189] hover:text-primary peer-checked:text-primary peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring">

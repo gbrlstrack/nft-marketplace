@@ -139,10 +139,17 @@ test('categoria, rede e faixa combinam com ordenação e restauram URL, refresh 
   })
   await setRangeWithKeyboard(upper, 160)
   await setRangeWithKeyboard(lower, 20)
-  await filters(page).getByText('Arte digital', { exact: true }).click()
   await page
     .getByRole('combobox', { name: 'Ordenar por', exact: true })
     .selectOption('name')
+  const categoryResponse = catalogResponse(page, {
+    category: 'art',
+    sort: 'name',
+    minPrice: '0.2',
+    maxPrice: '1.6',
+  })
+  await filters(page).getByText('Arte digital', { exact: true }).click()
+  expect((await categoryResponse).status()).toBe(200)
   const selected = {
     category: 'art',
     network: 'polygon',
@@ -190,10 +197,16 @@ test('categoria, rede e faixa combinam com ordenação e restauram URL, refresh 
   ).toHaveValue('name')
 
   await page.goBack()
+  expect(new URL(page.url()).searchParams.get('category')).toBe('art')
+  expect(new URL(page.url()).searchParams.has('network')).toBe(false)
+  await expect(lower).toHaveValue('20')
+  await expect(upper).toHaveValue('160')
+  await page.goBack()
   expect(new URL(page.url()).searchParams.get('page')).toBe('2')
   expect(new URL(page.url()).searchParams.has('network')).toBe(false)
   await expect(lower).toHaveValue('2')
   await expect(upper).toHaveValue('1230')
+  await page.goForward()
   await page.goForward()
   await expectItems(page, expected)
   await filters(page)
