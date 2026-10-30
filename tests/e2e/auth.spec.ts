@@ -395,11 +395,16 @@ test('sair durante login pendente prevalece sobre a resposta de autenticação a
   expect((await signedOut).status()).toBe(204)
   expect(completed).toEqual(['login', 'logout'])
 
-  const restored = responseFor(page, 'GET', '/auth/session')
   await page.reload()
-  const session = await restored
-  expect(session.status()).toBe(200)
-  expect(await session.json()).toEqual({ user: null, expiresAt: null })
+  await expect(page.getByRole('main')).toBeVisible()
+  // Read in the current document: reconnect can also query the session while
+  // the previous document is being replaced, making that response body expire.
+  const session = await page.evaluate(async () => {
+    const response = await fetch('/api/auth/session')
+    return { status: response.status, body: await response.json() }
+  })
+  expect(session.status).toBe(200)
+  expect(session.body).toEqual({ user: null, expiresAt: null })
   await page.goto('/profile')
   await expect(
     page.getByRole('heading', {
