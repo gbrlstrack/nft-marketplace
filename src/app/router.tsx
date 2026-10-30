@@ -15,6 +15,10 @@ import { NftPage } from '@/features/catalog/nft-page'
 import { ensureSession, refreshSession } from '@/features/auth/session'
 import { safeReturnTo } from '@/features/auth/return-to'
 import { RouteErrorPage } from '@/app/route-error-page'
+import {
+  parseMarketplaceSearch,
+  stringifyMarketplaceSearch,
+} from '@/lib/search-params'
 
 const rootRoute = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   component: Shell,
@@ -142,6 +146,8 @@ export const router = createRouter({
     orderRoute,
   ]),
   context: { queryClient },
+  parseSearch: parseMarketplaceSearch,
+  stringifySearch: stringifyMarketplaceSearch,
   defaultPreload: 'intent',
   scrollRestoration: true,
 })

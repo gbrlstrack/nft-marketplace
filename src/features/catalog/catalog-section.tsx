@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { catalogOptions } from './queries'
 import { NftCard } from './nft-card'
 import { validateCatalogSearch } from './search'
+import { PriceRangeFilter } from './price-range-filter'
 
 const control =
   'mt-2 min-h-11 w-full min-w-0 rounded-md border border-border bg-background px-3 py-2 text-sm'
@@ -15,6 +16,11 @@ const categories = [
   { value: 'art', label: 'Arte digital' },
   { value: 'photography', label: 'Fotografia' },
   { value: 'music', label: 'Música' },
+] as const
+const networks = [
+  { value: 'ethereum', label: 'Ethereum' },
+  { value: 'polygon', label: 'Polygon' },
+  { value: 'solana', label: 'Solana' },
 ] as const
 
 export function CatalogSection() {
@@ -26,8 +32,17 @@ export function CatalogSection() {
   function applyFilters(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
+    const values = Object.fromEntries(form)
+    const submitter = (event.nativeEvent as SubmitEvent).submitter
+    if (
+      submitter instanceof HTMLButtonElement &&
+      submitter.name === 'applyPrice'
+    ) {
+      values.minPrice = values.priceMinDraft
+      values.maxPrice = values.priceMaxDraft
+    }
     void navigate({
-      search: validateCatalogSearch(Object.fromEntries(form)),
+      search: validateCatalogSearch(values),
       resetScroll: false,
     })
   }
@@ -48,7 +63,7 @@ export function CatalogSection() {
         key={`toolbar:${JSON.stringify(search)}`}
         role="group"
         aria-label="Busca e ordenação do catálogo"
-        className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)]"
+        className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_auto]"
       >
         <label className="block min-w-0 text-sm font-semibold">
           Buscar NFTs
@@ -93,6 +108,9 @@ export function CatalogSection() {
             <option value="name">Nome</option>
           </select>
         </label>
+        <Button type="submit" form="catalog-filters" className="self-end">
+          Aplicar filtros
+        </Button>
       </div>
       <div className="grid items-start gap-8 lg:grid-cols-[19.375rem_minmax(0,1fr)]">
         <form
@@ -124,18 +142,37 @@ export function CatalogSection() {
               ))}
             </div>
           </fieldset>
-          <Button
-            type="submit"
-            aria-label="Aplicar filtros"
-            className="mt-5 min-h-9 rounded px-3 py-1.5 text-base"
-          >
-            Aplicar
-          </Button>
+          <PriceRangeFilter search={search} />
+          <fieldset aria-label="Rede" className="mt-9">
+            <legend className="text-lg font-bold">Rede</legend>
+            <div className="mt-2">
+              {networks.map((network) => (
+                <label key={network.value} className="block cursor-pointer">
+                  <input
+                    type="radio"
+                    name="network"
+                    value={network.value}
+                    defaultChecked={search.network === network.value}
+                    onChange={(event) =>
+                      event.currentTarget.form?.requestSubmit()
+                    }
+                    className="peer sr-only"
+                  />
+                  <span className="flex min-h-10 items-center justify-between gap-4 rounded-sm px-3 text-sm text-[#cdb189] hover:text-primary peer-checked:text-primary peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring">
+                    <span>{network.label}</span>
+                    <span className="font-semibold tabular-nums">
+                      ({catalog.data?.networkCounts?.[network.value] ?? '—'})
+                    </span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
           <Button
             type="button"
             variant="ghost"
             onClick={clearFilters}
-            className="mt-2 block px-3 text-sm text-[#cdb189]"
+            className="mt-5 block px-3 text-sm text-[#cdb189]"
           >
             Limpar filtros
           </Button>

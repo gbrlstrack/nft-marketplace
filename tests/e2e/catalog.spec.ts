@@ -107,7 +107,7 @@ test('filtros combinados, paginação, URL, refresh e histórico preservam os re
     page: '1',
   }
   const filtered = catalogResponse(page, search)
-  await filters
+  await page
     .getByRole('button', { name: 'Aplicar filtros', exact: true })
     .click()
   const filteredData: NftListResponse = await (await filtered).json()
@@ -198,16 +198,12 @@ test('ordenação de preço usa valores ETH precisos nas duas direções', async
     expect(ascending[index]).toBeGreaterThanOrEqual(ascending[index - 1])
   }
 
-  const filters = page.getByRole('form', {
-    name: 'Filtros do catálogo',
-    exact: true,
-  })
   await page
     .getByRole('group', { name: 'Busca e ordenação do catálogo', exact: true })
     .getByRole('combobox', { name: 'Ordenar por', exact: true })
     .selectOption('price-desc')
   const descendingResponse = catalogResponse(page, { sort: 'price-desc' })
-  await filters
+  await page
     .getByRole('button', { name: 'Aplicar filtros', exact: true })
     .click()
   const descendingResult = await descendingResponse
@@ -373,10 +369,6 @@ test('resposta antiga não substitui a busca mais recente', async ({ page }) => 
       .getByRole('list', { name: 'NFTs disponíveis', exact: true })
       .getByRole('listitem'),
   ).toHaveCount(8)
-  const filters = page.getByRole('form', {
-    name: 'Filtros do catálogo',
-    exact: true,
-  })
   const shortFinished = catalogRequestCompletion(page, 'a')
   const shortStarted = page.waitForRequest((request) =>
     isCatalogRequest(request, { q: 'a' }),
@@ -386,7 +378,7 @@ test('resposta antiga não substitui a busca mais recente', async ({ page }) => 
     exact: true,
   })
   await toolbar.getByLabel('Buscar NFTs', { exact: true }).fill('a')
-  await filters
+  await page
     .getByRole('button', { name: 'Aplicar filtros', exact: true })
     .click()
   await shortStarted
@@ -395,7 +387,7 @@ test('resposta antiga não substitui a busca mais recente', async ({ page }) => 
     .getByLabel('Buscar NFTs', { exact: true })
     .fill('Quiet Geometry')
   const newest = catalogResponse(page, { q: 'Quiet Geometry' })
-  await filters
+  await page
     .getByRole('button', { name: 'Aplicar filtros', exact: true })
     .click()
   const data: NftListResponse = await (await newest).json()
