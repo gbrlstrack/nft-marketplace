@@ -7,11 +7,12 @@ import type {
 import type { AccountDatabase } from './database'
 
 export class ApiFault extends Error {
-  constructor(
-    readonly status: number,
-    readonly detail: ApiError,
-  ) {
+  readonly status: number
+  readonly detail: ApiError
+  constructor(status: number, detail: ApiError) {
     super(detail.message)
+    this.status = status
+    this.detail = detail
   }
 }
 
