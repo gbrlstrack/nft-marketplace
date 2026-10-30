@@ -16,6 +16,7 @@ import { SessionLifecycle } from '@/features/auth/session-lifecycle'
 import { isPrivatePath } from '@/features/auth/return-to'
 import { FavoriteNotice } from '@/features/favorites/favorite-button'
 import { getErrorMessage } from '@/lib/api-error'
+import { CartNavigation } from '@/features/cart/cart-navigation'
 
 export function Shell() {
   const session = useSession()
@@ -52,6 +53,7 @@ export function Shell() {
             Favoritos
           </Link>
         </nav>
+        <CartNavigation />
         <div className="hidden items-center gap-4 md:flex">
           {session.user ? (
             <>

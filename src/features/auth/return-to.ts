@@ -31,5 +31,5 @@ export function safeReturnTo(input: unknown): string {
 }
 
 export function isPrivatePath(path: string) {
-  return /^\/(?:profile|wallets|favorites)(?:\/|$)/.test(path)
+  return /^\/(?:profile|wallets|favorites|checkout|orders)(?:\/|$)/.test(path)
 }

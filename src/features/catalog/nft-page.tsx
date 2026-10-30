@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useParams } from '@tanstack/react-router'
+import { Link, useNavigate, useParams } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 import type { Nft } from '@/contracts'
@@ -8,6 +8,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { formatEth } from '@/lib/eth'
 import { nftOptions } from './queries'
 import { FavoriteButton } from '@/features/favorites/favorite-button'
+import { isCommerceScope, useCartActions } from '@/features/cart/queries'
+import { useSession } from '@/features/auth/use-session'
+import { getErrorMessage } from '@/lib/api-error'
 
 export function NftPage() {
   const { nftId } = useParams({ from: '/nfts/$nftId' })
@@ -75,6 +78,9 @@ export function NftPage() {
 }
 
 function NftDetails({ nft }: { nft: Nft }) {
+  const navigate = useNavigate()
+  const { scope, user, authPending } = useSession()
+  const cart = useCartActions()
   const [imageIndex, setImageIndex] = useState(0)
   const [editionId, setEditionId] = useState(
     nft.editions.find((edition) => edition.available > 0)?.id ||
@@ -83,6 +89,26 @@ function NftDetails({ nft }: { nft: Nft }) {
   const [quantity, setQuantity] = useState(1)
   const edition = nft.editions.find((item) => item.id === editionId)
   const image = nft.gallery[imageIndex] || nft.image
+  function addToCart(checkout = false) {
+    if (
+      !edition ||
+      !Number.isSafeInteger(quantity) ||
+      quantity < 1 ||
+      quantity > edition.available ||
+      cart.busy ||
+      authPending
+    )
+      return
+    cart.add.mutate(
+      { nftId: nft.id, editionId: edition.id, quantity },
+      {
+        onSuccess: () => {
+          if (checkout && isCommerceScope(scope, user?.id))
+            void navigate({ to: '/checkout' })
+        },
+      },
+    )
+  }
   return (
     <>
       <Link to="/" className="text-sm text-muted-foreground hover:text-primary">
@@ -187,6 +213,47 @@ function NftDetails({ nft }: { nft: Nft }) {
                     className="mt-2 block min-h-11 w-24 rounded-md border border-border bg-background px-3"
                   />
                 </label>
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <Button
+                    disabled={
+                      authPending ||
+                      cart.busy ||
+                      quantity < 1 ||
+                      quantity > edition.available
+                    }
+                    onClick={() => addToCart()}
+                  >
+                    Adicionar ao carrinho
+                  </Button>
+                  <Button
+                    variant="outline"
+                    disabled={
+                      authPending ||
+                      cart.busy ||
+                      quantity < 1 ||
+                      quantity > edition.available
+                    }
+                    onClick={() => addToCart(true)}
+                  >
+                    Comprar agora
+                  </Button>
+                </div>
+                {cart.add.isSuccess && (
+                  <p role="status" className="mt-4 text-sm">
+                    NFT adicionado ao carrinho.{' '}
+                    <Link to="/cart" className="text-primary underline">
+                      Ver carrinho
+                    </Link>
+                  </p>
+                )}
+                {cart.add.isError && (
+                  <p role="alert" className="mt-4 text-sm">
+                    {getErrorMessage(
+                      cart.add.error,
+                      'Não foi possível adicionar o NFT. Tente novamente.',
+                    )}
+                  </p>
+                )}
               </>
             )}
           </div>

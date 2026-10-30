@@ -101,6 +101,33 @@ const favoritesRoute = createRoute({
   ),
 })
 
+const cartRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/cart',
+  component: lazyRouteComponent(
+    () => import('@/features/cart/cart-page'),
+    'CartPage',
+  ),
+})
+const checkoutRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/checkout',
+  beforeLoad: requireSession,
+  component: lazyRouteComponent(
+    () => import('@/features/checkout/checkout-page'),
+    'CheckoutPage',
+  ),
+})
+const orderRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/orders/$orderId',
+  beforeLoad: requireSession,
+  component: lazyRouteComponent(
+    () => import('@/features/orders/order-page'),
+    'OrderPage',
+  ),
+})
+
 export const router = createRouter({
   routeTree: rootRoute.addChildren([
     catalogRoute,
@@ -110,6 +137,9 @@ export const router = createRouter({
     profileRoute,
     walletsRoute,
     favoritesRoute,
+    cartRoute,
+    checkoutRoute,
+    orderRoute,
   ]),
   context: { queryClient },
   defaultPreload: 'intent',
