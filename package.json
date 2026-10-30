@@ -26,9 +26,12 @@
     "axios": "1.21.0",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
+    "engine.io-parser": "5.2.3",
     "lucide-react": "1.64.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
+    "socket.io-client": "4.8.4",
+    "socket.io-parser": "4.2.7",
     "tailwind-merge": "3.7.0",
     "tailwindcss": "4.3.3"
   },
