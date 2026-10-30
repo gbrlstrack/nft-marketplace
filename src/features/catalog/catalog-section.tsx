@@ -1,13 +1,15 @@
 import type { FormEvent } from 'react'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { ChevronDown, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { catalogOptions } from './queries'
 import { NftCard } from './nft-card'
 import { validateCatalogSearch } from './search'
 import { PriceRangeFilter } from './price-range-filter'
+import { CatalogTabs } from './catalog-tabs'
+import { CatalogPagination } from './catalog-pagination'
 
 const control =
   'mt-2 min-h-11 w-full min-w-0 rounded-md border border-border bg-background px-3 py-2 text-sm'
@@ -53,17 +55,12 @@ export function CatalogSection() {
 
   return (
     <section id="catalogo" className="scroll-mt-6">
-      <div className="mb-8 border-b border-border pb-4">
-        <p className="text-xs tracking-wider text-primary uppercase">
-          O próximo item da sua coleção
-        </p>
-        <h2 className="mt-2 text-2xl font-bold">Todos os NFTs</h2>
-      </div>
+      <h2 className="sr-only">Catálogo de NFTs</h2>
       <div
         key={`toolbar:${JSON.stringify(search)}`}
         role="group"
         aria-label="Busca e ordenação do catálogo"
-        className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_auto]"
+        className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto]"
       >
         <label className="block min-w-0 text-sm font-semibold">
           Buscar NFTs
@@ -94,20 +91,6 @@ export function CatalogSection() {
             className={control}
           />
         </label>
-        <label className="block min-w-0 text-sm font-semibold">
-          Ordenar por
-          <select
-            form="catalog-filters"
-            name="sort"
-            defaultValue={search.sort || 'featured'}
-            className={control}
-          >
-            <option value="featured">Destaques</option>
-            <option value="price-asc">Menor preço</option>
-            <option value="price-desc">Maior preço</option>
-            <option value="name">Nome</option>
-          </select>
-        </label>
         <Button type="submit" form="catalog-filters" className="self-end">
           Aplicar filtros
         </Button>
@@ -120,6 +103,7 @@ export function CatalogSection() {
           onSubmit={applyFilters}
           className="min-w-0 bg-card p-5 font-mono"
         >
+          <input type="hidden" name="feed" value={search.feed || ''} />
           <fieldset aria-label="Categoria">
             <legend className="text-lg font-bold">Coleções</legend>
             <div className="mt-2">
@@ -177,120 +161,137 @@ export function CatalogSection() {
             Limpar filtros
           </Button>
         </form>
-        <div className="min-w-0" aria-busy={catalog.isFetching}>
-          {catalog.isPending ? (
-            <div role="status" aria-label="Carregando NFTs">
-              <span className="sr-only">Carregando NFTs</span>
-              <div className="grid grid-cols-2 gap-5 md:grid-cols-3">
-                {Array.from({ length: 8 }, (_, index) => (
-                  <div key={index}>
-                    <Skeleton className="aspect-square rounded-2xl" />
-                    <Skeleton className="mt-4 h-4 w-4/5" />
-                    <Skeleton className="mt-2 h-4 w-1/2" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : catalog.isError && !catalog.data ? (
-            <div role="alert" className="rounded-xl border border-border p-8">
-              <h2 className="text-lg font-bold">
-                Não foi possível carregar os NFTs
-              </h2>
-              <p className="mt-3 text-sm text-muted-foreground">
-                Verifique sua conexão e tente novamente.
-              </p>
-              <Button className="mt-6" onClick={() => void catalog.refetch()}>
-                Tentar novamente
-              </Button>
-            </div>
-          ) : catalog.data ? (
-            <>
-              <div
-                className="mb-5 flex min-h-5 flex-wrap justify-between gap-2 text-xs text-muted-foreground"
-                role="status"
-                aria-live="polite"
-              >
-                <p>{catalog.data.total} NFTs encontrados</p>
-                {catalog.isFetching && <p>Atualizando catálogo…</p>}
-              </div>
-              {catalog.isError && (
-                <p role="alert" className="mb-4 text-sm">
-                  Não foi possível atualizar os resultados.{' '}
-                  <button
-                    className="underline"
-                    onClick={() => void catalog.refetch()}
-                  >
-                    Tentar novamente
-                  </button>
-                </p>
-              )}
-              {catalog.data.items.length ? (
-                <ul
-                  aria-label="NFTs disponíveis"
-                  className="grid grid-cols-2 gap-x-4 gap-y-9 md:grid-cols-3 md:gap-x-6"
+        <div className="min-w-0">
+          <div className="mb-6 flex min-w-0 flex-wrap items-center justify-between gap-x-5 gap-y-3">
+            <CatalogTabs
+              feed={search.feed}
+              onChange={(feed) =>
+                void navigate({
+                  search: { ...search, feed, page: undefined },
+                  resetScroll: false,
+                })
+              }
+            />
+            <label className="ml-auto flex min-w-0 items-center gap-1 font-mono text-sm font-bold">
+              <span className="shrink-0">Ordenar por:</span>
+              <span className="relative min-w-0">
+                <select
+                  key={`sort:${JSON.stringify(search)}`}
+                  aria-label="Ordenar por"
+                  form="catalog-filters"
+                  name="sort"
+                  defaultValue={
+                    search.sort ||
+                    (search.feed === 'trending' ? 'popular' : 'featured')
+                  }
+                  className="min-h-9 w-full min-w-0 appearance-none rounded-sm bg-transparent py-1 pr-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&_option]:bg-card"
                 >
-                  {catalog.data.items.map((nft) => (
-                    <NftCard key={nft.id} nft={nft} />
+                  <option value="featured">Listados recentemente</option>
+                  <option value="popular">Mais populares</option>
+                  <option value="price-asc">Menor preço</option>
+                  <option value="price-desc">Maior preço</option>
+                  <option value="name">Nome</option>
+                </select>
+                <ChevronDown
+                  aria-hidden="true"
+                  className="pointer-events-none absolute top-3 right-0 size-3"
+                />
+              </span>
+            </label>
+          </div>
+          <div
+            id="catalog-results"
+            role="tabpanel"
+            aria-labelledby={`catalog-tab-${search.feed || 'all'}`}
+            tabIndex={0}
+            className="min-w-0 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+            aria-busy={catalog.isFetching}
+          >
+            {catalog.isPending ? (
+              <div role="status" aria-label="Carregando NFTs">
+                <span className="sr-only">Carregando NFTs</span>
+                <div className="grid grid-cols-2 gap-5 md:grid-cols-3">
+                  {Array.from({ length: 8 }, (_, index) => (
+                    <div key={index}>
+                      <Skeleton className="aspect-square rounded-2xl" />
+                      <Skeleton className="mt-4 h-4 w-4/5" />
+                      <Skeleton className="mt-2 h-4 w-1/2" />
+                    </div>
                   ))}
-                </ul>
-              ) : (
-                <div className="rounded-xl border border-border p-8">
-                  <h2 className="text-lg font-bold">Nenhum NFT encontrado</h2>
-                  <p className="mt-3 text-sm text-muted-foreground">
-                    Tente outra busca ou ajuste os filtros.
-                  </p>
-                  <Button
-                    className="mt-6"
-                    variant="outline"
-                    onClick={clearFilters}
-                  >
-                    Limpar filtros
-                  </Button>
                 </div>
-              )}
-              <nav
-                aria-label="Paginação do catálogo"
-                className="mt-10 flex flex-wrap items-center justify-center gap-3"
-              >
-                <Button
-                  variant="outline"
-                  aria-label="Página anterior"
-                  disabled={page <= 1 || catalog.isFetching}
-                  onClick={() =>
-                    void navigate({
-                      search: { ...search, page: page - 1 },
-                      resetScroll: false,
-                    })
-                  }
-                >
-                  <ChevronLeft aria-hidden="true" />
-                </Button>
-                <p className="text-xs">
-                  Página {catalog.data.page} de{' '}
-                  {Math.max(
-                    1,
-                    Math.ceil(catalog.data.total / catalog.data.pageSize),
-                  )}
+              </div>
+            ) : catalog.isError && !catalog.data ? (
+              <div role="alert" className="rounded-xl border border-border p-8">
+                <h2 className="text-lg font-bold">
+                  Não foi possível carregar os NFTs
+                </h2>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  Verifique sua conexão e tente novamente.
                 </p>
-                <Button
-                  variant="outline"
-                  aria-label="Próxima página"
-                  disabled={
-                    page * catalog.data.pageSize >= catalog.data.total ||
-                    catalog.isFetching
-                  }
-                  onClick={() =>
+                <Button className="mt-6" onClick={() => void catalog.refetch()}>
+                  Tentar novamente
+                </Button>
+              </div>
+            ) : catalog.data ? (
+              <>
+                <div
+                  className="mb-5 flex min-h-5 flex-wrap justify-between gap-2 text-xs text-muted-foreground"
+                  role="status"
+                  aria-live="polite"
+                >
+                  <p>{catalog.data.total} NFTs encontrados</p>
+                  {catalog.isFetching && <p>Atualizando catálogo…</p>}
+                </div>
+                {catalog.isError && (
+                  <p role="alert" className="mb-4 text-sm">
+                    Não foi possível atualizar os resultados.{' '}
+                    <button
+                      className="underline"
+                      onClick={() => void catalog.refetch()}
+                    >
+                      Tentar novamente
+                    </button>
+                  </p>
+                )}
+                {catalog.data.items.length ? (
+                  <ul
+                    aria-label="NFTs disponíveis"
+                    className="grid grid-cols-2 gap-x-4 gap-y-9 md:grid-cols-3 md:gap-x-6"
+                  >
+                    {catalog.data.items.map((nft) => (
+                      <NftCard key={nft.id} nft={nft} />
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="rounded-xl border border-border p-8">
+                    <h2 className="text-lg font-bold">Nenhum NFT encontrado</h2>
+                    <p className="mt-3 text-sm text-muted-foreground">
+                      Tente outra busca ou ajuste os filtros.
+                    </p>
+                    <Button
+                      className="mt-6"
+                      variant="outline"
+                      onClick={clearFilters}
+                    >
+                      Limpar filtros
+                    </Button>
+                  </div>
+                )}
+                <CatalogPagination
+                  page={page}
+                  total={catalog.data.total}
+                  pageSize={catalog.data.pageSize}
+                  disabled={catalog.isFetching}
+                  onChange={(nextPage) =>
                     void navigate({
-                      search: { ...search, page: page + 1 },
+                      search: { ...search, page: nextPage },
                       resetScroll: false,
                     })
                   }
-                >
-                  <ChevronRight aria-hidden="true" />
-                </Button>
-              </nav>
-            </>
-          ) : null}
+                />
+              </>
+            ) : null}
+          </div>
         </div>
       </div>
     </section>

@@ -1,5 +1,6 @@
 import type {
   CatalogSearch,
+  CatalogFeed,
   NftCategory,
   NftNetwork,
   NftSort,
@@ -19,7 +20,14 @@ export function validateCatalogSearch(
   raw: Record<string, unknown>,
 ): CatalogSearch {
   const categories: NftCategory[] = ['art', 'photography', 'music']
-  const sorts: NftSort[] = ['featured', 'price-asc', 'price-desc', 'name']
+  const sorts: NftSort[] = [
+    'featured',
+    'popular',
+    'price-asc',
+    'price-desc',
+    'name',
+  ]
+  const feeds: CatalogFeed[] = ['new', 'trending']
   const networks: NftNetwork[] = ['ethereum', 'polygon', 'solana']
   const page = Number(raw.page)
   let minPrice = price(raw.minPrice)
@@ -29,6 +37,9 @@ export function validateCatalogSearch(
     maxPrice = undefined
   }
   return {
+    feed: feeds.includes(raw.feed as CatalogFeed)
+      ? (raw.feed as CatalogFeed)
+      : undefined,
     q:
       typeof raw.q === 'string'
         ? raw.q.trim().slice(0, 200) || undefined

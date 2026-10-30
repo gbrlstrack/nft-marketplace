@@ -96,7 +96,7 @@ test('filtros combinados, paginação, URL, refresh e histórico preservam os re
   await toolbar.getByLabel('Buscar NFTs', { exact: true }).fill('a')
   await toolbar.getByLabel('Coleção', { exact: true }).fill('Chromatic')
   await filters.getByText('Arte digital', { exact: true }).click()
-  await toolbar
+  await page
     .getByRole('combobox', { name: 'Ordenar por', exact: true })
     .selectOption('name')
   const search = {
@@ -152,7 +152,7 @@ test('filtros combinados, paginação, URL, refresh e histórico preservam os re
     filters.getByRole('radio', { name: 'Arte digital (3)', exact: true }),
   ).toBeChecked()
   await expect(
-    toolbar.getByRole('combobox', { name: 'Ordenar por', exact: true }),
+    page.getByRole('combobox', { name: 'Ordenar por', exact: true }),
   ).toHaveValue('name')
 
   await page.goBack()
@@ -169,7 +169,7 @@ test('filtros combinados, paginação, URL, refresh e histórico preservam os re
     filters.getByRole('radio', { name: 'Arte digital (8)', exact: true }),
   ).not.toBeChecked()
   await expect(
-    toolbar.getByRole('combobox', { name: 'Ordenar por', exact: true }),
+    page.getByRole('combobox', { name: 'Ordenar por', exact: true }),
   ).toHaveValue('featured')
   await page
     .getByRole('button', { name: 'Página anterior', exact: true })
@@ -199,7 +199,6 @@ test('ordenação de preço usa valores ETH precisos nas duas direções', async
   }
 
   await page
-    .getByRole('group', { name: 'Busca e ordenação do catálogo', exact: true })
     .getByRole('combobox', { name: 'Ordenar por', exact: true })
     .selectOption('price-desc')
   const descendingResponse = catalogResponse(page, { sort: 'price-desc' })

@@ -41,6 +41,20 @@ test('normalização descarta preços e redes inválidos e mantém contexto de r
   assert.equal(search.minPrice, undefined)
   assert.equal(search.maxPrice, undefined)
   assert.equal(search.network, undefined)
+  assert.equal(validateCatalogSearch({ feed: 'unknown' }).feed, undefined)
+  const feed = validateCatalogSearch({
+    feed: 'trending',
+    sort: 'popular',
+    page: 2,
+  })
+  assert.equal(feed.feed, 'trending')
+  assert.equal(feed.sort, 'popular')
+  assert.deepEqual(
+    validateCatalogSearch(
+      parseMarketplaceSearch(stringifyMarketplaceSearch(feed)),
+    ),
+    feed,
+  )
   const original = {
     returnTo: '/checkout?q=nome%20com%20espaço',
     q: '100% de arte',

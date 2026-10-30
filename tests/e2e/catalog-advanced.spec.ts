@@ -140,7 +140,7 @@ test('categoria, rede e faixa combinam com ordenação e restauram URL, refresh 
   await setRangeWithKeyboard(upper, 160)
   await setRangeWithKeyboard(lower, 20)
   await filters(page).getByText('Arte digital', { exact: true }).click()
-  await toolbar(page)
+  await page
     .getByRole('combobox', { name: 'Ordenar por', exact: true })
     .selectOption('name')
   const selected = {
@@ -186,7 +186,7 @@ test('categoria, rede e faixa combinam com ordenação e restauram URL, refresh 
     filters(page).getByRole('radio', { name: /^Polygon \(/ }),
   ).toBeChecked()
   await expect(
-    toolbar(page).getByRole('combobox', { name: 'Ordenar por', exact: true }),
+    page.getByRole('combobox', { name: 'Ordenar por', exact: true }),
   ).toHaveValue('name')
 
   await page.goBack()

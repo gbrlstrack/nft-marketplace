@@ -9,13 +9,14 @@ import { keepLatestCatalog, keepLatestNft } from '@/features/realtime/resources'
 
 export function catalogOptions(search: CatalogSearch) {
   const params = {
+    feed: search.feed,
     q: search.q || undefined,
     category: search.category || undefined,
     collection: search.collection || undefined,
     network: search.network,
     minPrice: search.minPrice,
     maxPrice: search.maxPrice,
-    sort: search.sort || 'featured',
+    sort: search.sort || (search.feed === 'trending' ? 'popular' : 'featured'),
     page: search.page || 1,
     pageSize: 8,
   }
