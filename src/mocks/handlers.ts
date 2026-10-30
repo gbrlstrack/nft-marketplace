@@ -150,7 +150,7 @@ export const handlers = [
 
     const query = normalize(search.q ?? '')
     const collection = normalize(search.collection ?? '')
-    const items =
+    const matching =
       getMockScenario() === 'empty'
         ? []
         : commerce(await readDatabase()).catalog.filter((nft) => {
@@ -159,11 +159,19 @@ export const handlers = [
             )
             return (
               (!query || searchable.includes(query)) &&
-              (!search.category || nft.category === search.category) &&
               (!collection || normalize(nft.collection) === collection)
             )
           })
 
+    const items = matching.filter(
+      (nft) => !search.category || nft.category === search.category,
+    )
+    const categoryCounts = Object.fromEntries(
+      validCategories.map((category) => [
+        category,
+        matching.filter((nft) => nft.category === category).length,
+      ]),
+    ) as Record<NftCategory, number>
     const sorted = sortNfts(items, search.sort ?? 'featured')
     const page = search.page ?? 1
     const pageSize = search.pageSize ?? 8
@@ -174,6 +182,7 @@ export const handlers = [
       total: sorted.length,
       page,
       pageSize,
+      categoryCounts,
     })
   }),
   http.get('/api/nfts/:id', async ({ request, params }) => {

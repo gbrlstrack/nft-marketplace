@@ -11,6 +11,12 @@ import { validateCatalogSearch } from './search'
 const control =
   'mt-2 min-h-11 w-full min-w-0 rounded-md border border-border bg-background px-3 py-2 text-sm'
 
+const categories = [
+  { value: 'art', label: 'Arte digital' },
+  { value: 'photography', label: 'Fotografia' },
+  { value: 'music', label: 'Música' },
+] as const
+
 export function CatalogSection() {
   const search = useSearch({ from: '/' })
   const navigate = useNavigate({ from: '/' })
@@ -38,68 +44,99 @@ export function CatalogSection() {
         </p>
         <h2 className="mt-2 text-2xl font-bold">Todos os NFTs</h2>
       </div>
-      <div className="grid gap-8 lg:grid-cols-[14rem_minmax(0,1fr)]">
+      <div
+        key={`toolbar:${JSON.stringify(search)}`}
+        role="group"
+        aria-label="Busca e ordenação do catálogo"
+        className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)]"
+      >
+        <label className="block min-w-0 text-sm font-semibold">
+          Buscar NFTs
+          <div className="relative">
+            <input
+              form="catalog-filters"
+              name="q"
+              type="search"
+              defaultValue={search.q || ''}
+              placeholder="Nome ou criador"
+              maxLength={200}
+              className={`${control} pr-9`}
+            />
+            <Search
+              className="pointer-events-none absolute top-5 right-3 size-4 text-muted-foreground"
+              aria-hidden="true"
+            />
+          </div>
+        </label>
+        <label className="block min-w-0 text-sm font-semibold">
+          Coleção
+          <input
+            form="catalog-filters"
+            name="collection"
+            defaultValue={search.collection || ''}
+            placeholder="Todas as coleções"
+            maxLength={100}
+            className={control}
+          />
+        </label>
+        <label className="block min-w-0 text-sm font-semibold">
+          Ordenar por
+          <select
+            form="catalog-filters"
+            name="sort"
+            defaultValue={search.sort || 'featured'}
+            className={control}
+          >
+            <option value="featured">Destaques</option>
+            <option value="price-asc">Menor preço</option>
+            <option value="price-desc">Maior preço</option>
+            <option value="name">Nome</option>
+          </select>
+        </label>
+      </div>
+      <div className="grid items-start gap-8 lg:grid-cols-[19.375rem_minmax(0,1fr)]">
         <form
+          id="catalog-filters"
           key={JSON.stringify(search)}
           aria-label="Filtros do catálogo"
           onSubmit={applyFilters}
-          className="grid h-fit gap-5 rounded-lg bg-card p-5 sm:grid-cols-2 lg:grid-cols-1"
+          className="min-w-0 bg-card p-5 font-mono"
         >
-          <label className="block text-sm font-semibold">
-            Buscar NFTs
-            <div className="relative">
-              <input
-                name="q"
-                type="search"
-                defaultValue={search.q || ''}
-                placeholder="Nome ou criador"
-                maxLength={200}
-                className={`${control} pr-9`}
-              />
-              <Search
-                className="pointer-events-none absolute top-5 right-3 size-4 text-muted-foreground"
-                aria-hidden="true"
-              />
+          <fieldset aria-label="Categoria">
+            <legend className="text-lg font-bold">Coleções</legend>
+            <div className="mt-2">
+              {categories.map((category) => (
+                <label key={category.value} className="block cursor-pointer">
+                  <input
+                    type="radio"
+                    name="category"
+                    value={category.value}
+                    defaultChecked={search.category === category.value}
+                    className="peer sr-only"
+                  />
+                  <span className="flex min-h-10 items-center justify-between gap-4 rounded-sm px-3 text-sm text-[#cdb189] hover:text-primary peer-checked:text-primary peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring">
+                    <span>{category.label}</span>
+                    <span className="font-semibold tabular-nums">
+                      ({catalog.data?.categoryCounts?.[category.value] ?? '—'})
+                    </span>
+                  </span>
+                </label>
+              ))}
             </div>
-          </label>
-          <label className="block text-sm font-semibold">
-            Categoria
-            <select
-              name="category"
-              defaultValue={search.category || ''}
-              className={control}
-            >
-              <option value="">Todas</option>
-              <option value="art">Arte digital</option>
-              <option value="photography">Fotografia</option>
-              <option value="music">Música</option>
-            </select>
-          </label>
-          <label className="block text-sm font-semibold">
-            Coleção
-            <input
-              name="collection"
-              defaultValue={search.collection || ''}
-              placeholder="Todas as coleções"
-              maxLength={100}
-              className={control}
-            />
-          </label>
-          <label className="block text-sm font-semibold">
-            Ordenar por
-            <select
-              name="sort"
-              defaultValue={search.sort || 'featured'}
-              className={control}
-            >
-              <option value="featured">Destaques</option>
-              <option value="price-asc">Menor preço</option>
-              <option value="price-desc">Maior preço</option>
-              <option value="name">Nome</option>
-            </select>
-          </label>
-          <Button type="submit">Aplicar filtros</Button>
-          <Button type="button" variant="ghost" onClick={clearFilters}>
+          </fieldset>
+          <Button
+            type="submit"
+            aria-label="Aplicar filtros"
+            className="mt-5 min-h-9 rounded px-3 py-1.5 text-base"
+          >
+            Aplicar
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={clearFilters}
+            className="mt-2 block px-3 text-sm text-[#cdb189]"
+          >
             Limpar filtros
           </Button>
         </form>

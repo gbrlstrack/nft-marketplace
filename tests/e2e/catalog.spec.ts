@@ -64,6 +64,11 @@ test('filtros combinados, paginação, URL, refresh e histórico preservam os re
   const initialData: NftListResponse = await (await initial).json()
   expect(initialData.total).toBe(24)
   expect(initialData.pageSize).toBe(8)
+  expect(initialData.categoryCounts).toEqual({
+    art: 8,
+    photography: 8,
+    music: 8,
+  })
   await expectItems(
     page,
     initialData.items.map((nft) => nft.name),
@@ -84,12 +89,14 @@ test('filtros combinados, paginação, URL, refresh e histórico preservam os re
     name: 'Filtros do catálogo',
     exact: true,
   })
-  await filters.getByLabel('Buscar NFTs', { exact: true }).fill('a')
-  await filters.getByLabel('Coleção', { exact: true }).fill('Chromatic')
-  await filters
-    .getByRole('combobox', { name: 'Categoria', exact: true })
-    .selectOption('art')
-  await filters
+  const toolbar = page.getByRole('group', {
+    name: 'Busca e ordenação do catálogo',
+    exact: true,
+  })
+  await toolbar.getByLabel('Buscar NFTs', { exact: true }).fill('a')
+  await toolbar.getByLabel('Coleção', { exact: true }).fill('Chromatic')
+  await filters.getByText('Arte digital', { exact: true }).click()
+  await toolbar
     .getByRole('combobox', { name: 'Ordenar por', exact: true })
     .selectOption('name')
   const search = {
@@ -105,6 +112,11 @@ test('filtros combinados, paginação, URL, refresh e histórico preservam os re
     .click()
   const filteredData: NftListResponse = await (await filtered).json()
   expect(filteredData.total).toBe(3)
+  expect(filteredData.categoryCounts).toEqual({
+    art: 3,
+    photography: 3,
+    music: 3,
+  })
   expect(
     filteredData.items.every(
       (nft) => nft.category === 'art' && nft.collection === 'Chromatic',
@@ -130,17 +142,17 @@ test('filtros combinados, paginação, URL, refresh e histórico preservam os re
     'Coral Architecture',
     'Parallel Worlds',
   ])
-  await expect(filters.getByLabel('Buscar NFTs', { exact: true })).toHaveValue(
+  await expect(toolbar.getByLabel('Buscar NFTs', { exact: true })).toHaveValue(
     'a',
   )
-  await expect(filters.getByLabel('Coleção', { exact: true })).toHaveValue(
+  await expect(toolbar.getByLabel('Coleção', { exact: true })).toHaveValue(
     'Chromatic',
   )
   await expect(
-    filters.getByRole('combobox', { name: 'Categoria', exact: true }),
-  ).toHaveValue('art')
+    filters.getByRole('radio', { name: 'Arte digital (3)', exact: true }),
+  ).toBeChecked()
   await expect(
-    filters.getByRole('combobox', { name: 'Ordenar por', exact: true }),
+    toolbar.getByRole('combobox', { name: 'Ordenar por', exact: true }),
   ).toHaveValue('name')
 
   await page.goBack()
@@ -149,15 +161,15 @@ test('filtros combinados, paginação, URL, refresh e histórico preservam os re
     nextData.items.map((nft) => nft.name),
   )
   expect(new URL(page.url()).searchParams.get('page')).toBe('2')
-  await expect(filters.getByLabel('Buscar NFTs', { exact: true })).toHaveValue(
+  await expect(toolbar.getByLabel('Buscar NFTs', { exact: true })).toHaveValue(
     '',
   )
-  await expect(filters.getByLabel('Coleção', { exact: true })).toHaveValue('')
+  await expect(toolbar.getByLabel('Coleção', { exact: true })).toHaveValue('')
   await expect(
-    filters.getByRole('combobox', { name: 'Categoria', exact: true }),
-  ).toHaveValue('')
+    filters.getByRole('radio', { name: 'Arte digital (8)', exact: true }),
+  ).not.toBeChecked()
   await expect(
-    filters.getByRole('combobox', { name: 'Ordenar por', exact: true }),
+    toolbar.getByRole('combobox', { name: 'Ordenar por', exact: true }),
   ).toHaveValue('featured')
   await page
     .getByRole('button', { name: 'Página anterior', exact: true })
@@ -190,7 +202,8 @@ test('ordenação de preço usa valores ETH precisos nas duas direções', async
     name: 'Filtros do catálogo',
     exact: true,
   })
-  await filters
+  await page
+    .getByRole('group', { name: 'Busca e ordenação do catálogo', exact: true })
     .getByRole('combobox', { name: 'Ordenar por', exact: true })
     .selectOption('price-desc')
   const descendingResponse = catalogResponse(page, { sort: 'price-desc' })
@@ -368,13 +381,17 @@ test('resposta antiga não substitui a busca mais recente', async ({ page }) => 
   const shortStarted = page.waitForRequest((request) =>
     isCatalogRequest(request, { q: 'a' }),
   )
-  await filters.getByLabel('Buscar NFTs', { exact: true }).fill('a')
+  const toolbar = page.getByRole('group', {
+    name: 'Busca e ordenação do catálogo',
+    exact: true,
+  })
+  await toolbar.getByLabel('Buscar NFTs', { exact: true }).fill('a')
   await filters
     .getByRole('button', { name: 'Aplicar filtros', exact: true })
     .click()
   await shortStarted
 
-  await filters
+  await toolbar
     .getByLabel('Buscar NFTs', { exact: true })
     .fill('Quiet Geometry')
   const newest = catalogResponse(page, { q: 'Quiet Geometry' })
@@ -385,7 +402,7 @@ test('resposta antiga não substitui a busca mais recente', async ({ page }) => 
   expect(data.items.map((nft) => nft.name)).toEqual(['Quiet Geometry'])
   await shortFinished
   await expectItems(page, ['Quiet Geometry'])
-  await expect(filters.getByLabel('Buscar NFTs', { exact: true })).toHaveValue(
+  await expect(toolbar.getByLabel('Buscar NFTs', { exact: true })).toHaveValue(
     'Quiet Geometry',
   )
   expect(new URL(page.url()).searchParams.get('q')).toBe('Quiet Geometry')

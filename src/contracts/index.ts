@@ -52,6 +52,8 @@ export interface NftListResponse {
   total: number
   page: number
   pageSize: number
+  /** Counts before category/pagination, retaining the active text/collection filters. */
+  categoryCounts?: Record<NftCategory, number>
 }
 
 export type NftDetailResponse = Nft
