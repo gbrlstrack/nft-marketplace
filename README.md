@@ -1,6 +1,6 @@
 # Kurio — NFT Marketplace
 
-Implementação em andamento do [desafio](docs/plan/requisitos.md). A Fase 5 acrescenta carrinho, cotação, checkout e pedidos à conta e ao catálogo integrados à rede simulada. O [plano de implementação](docs/plan/implementacao.md) mantém as etapas e evidências; a [matriz de aceite](docs/acceptance.md) acompanha o escopo completo.
+Implementação em andamento do [desafio](docs/plan/requisitos.md). A Fase 6 integra atualizações Socket.IO e reconciliação REST ao catálogo, carrinho, checkout e pedidos. O [plano de implementação](docs/plan/implementacao.md) mantém as etapas e evidências; a [matriz de aceite](docs/acceptance.md) acompanha o escopo completo.
 
 Disponível: busca, filtros combinados de categoria/coleção, ordenação, paginação e histórico na URL; galeria e seleção de edição/quantidade; loading com shimmer, vazio, falhas recuperáveis, menu mobile acessível e rotas inexistentes. Valores ETH preservam até 18 casas decimais com cálculos inteiros em wei.
 
@@ -8,7 +8,9 @@ Também disponíveis: cadastro/login/logout, recuperação e expiração da sess
 
 Carrinho persistente, fusão no login, cupons, revisão do pagamento e recibo imutável estão implementados. Timeout recupera o mesmo pedido por chave de idempotência. Confirmação remove apenas as unidades compradas ainda representadas no carrinho; adições posteriores são preservadas, inclusive após uma redução de quantidade durante a pendência. Recusa conserva o carrinho.
 
-Socket.IO, baselines visuais, Lighthouse e deploy público continuam pendentes. As imagens geométricas e a fonte monoespaçada de sistema são provisórias; os PNGs em `prototype/` orientam o visual. O título desktop usa as medidas fornecidas: 43 px, peso 700 e altura de linha 70 px. O usuário não dispõe do nome da fonte original.
+Eventos `nft.updated` e `order.updated` atravessam o cliente Socket.IO real e o binding MSW. Alterações de preço/estoque atualizam os recursos e invalidam a revisão do checkout; reconexão consulta o REST para recuperar eventos perdidos. Duplicatas, versões antigas e eventos de outra sessão são descartados, e pedidos terminais permanecem terminais.
+
+Baselines visuais, Lighthouse e deploy público continuam pendentes. As imagens geométricas e a fonte monoespaçada de sistema são provisórias; os PNGs em `prototype/` orientam o visual. O título desktop usa as medidas fornecidas: 43 px, peso 700 e altura de linha 70 px. O usuário não dispõe do nome da fonte original.
 
 ## Contas de demonstração
 
@@ -103,7 +105,7 @@ await fetch('/api/__mock/scenario', {
 
 Para restaurar os fluxos, envie `{ name: 'default' }`. Os cenários persistem em `sessionStorage` na chave `kurio:account-scenario`. Para expirar a sessão atual, envie `POST /api/__mock/session/expire` e tente salvar o perfil ou alterar um favorito: a API recusa a operação e o app pede login com destino preservado.
 
-A base simulada está em `localStorage` (`kurio:mock-account-db:v1`); a sessão usa cookie opaco `nft_session`, válido por uma hora. O visitante usa `nft_cart`, válido por 90 dias; login/cadastro fundem os itens na conta respeitando estoque e aposentam a identidade visitante. Rascunho do checkout e tentativa de compra são guardados em `sessionStorage` por usuário, permitindo retomar após expiração/refresh sem gerar outra chave. O reset da API não apaga esses rascunhos locais: para uma demonstração inteiramente nova, limpe também as chaves `kurio:checkout:*` do `sessionStorage`.
+A base simulada está em `localStorage` (`kurio:mock-account-db:v1`); a sessão usa cookie opaco `nft_session`, válido por uma hora. O visitante usa `nft_cart`, válido por 90 dias; login/cadastro fundem os itens na conta respeitando estoque e aposentam a identidade visitante. Rascunho do checkout e tentativa de compra são guardados em `sessionStorage` por usuário, permitindo retomar após expiração/refresh sem gerar outra chave. Após reset da API, recarregue a página para reiniciar o cache e as versões públicas da aplicação. O reset não apaga rascunhos locais: para uma demonstração inteiramente nova, limpe também as chaves `kurio:checkout:*` do `sessionStorage`.
 
 A API simula a autenticação no navegador e não representa segurança de produção. Avatares aceitam PNG/JPEG/WebP de até 512 KiB e 4096 × 4096 px. Carteiras não abrem extensões; suas conexões duram até cinco minutos. Sair do formulário libera a conexão, exceto enquanto há tentativa de compra pendente; o recibo terminal conclui a limpeza.
 
@@ -125,7 +127,37 @@ await fetch('/api/__mock/commerce/scenario', {
 | `pending`           | Mantém o pedido pendente até acionar o controle de conclusão.                             |
 | `offline-orders`    | Falha de rede nas consultas de pedido; dados já recebidos permanecem visíveis.            |
 
-A seleção persiste na chave `kurio:commerce-scenario`. Envie `{ name: 'default' }` para restaurar. Com a conta autenticada, `POST /api/__mock/commerce/settle` com `{ orderId }` conclui somente um pedido próprio; sem ID, conclui os pendentes próprios. Controles de catálogo, taxas e expiração de cupom estão detalhados nos [contratos](docs/api-contracts.md). A atualização atual usa REST: carrinho a cada 2 s e pedidos pendentes a cada 500 ms. Socket.IO e reconciliação por eventos pertencem à Fase 6.
+A seleção persiste na chave `kurio:commerce-scenario`. Envie `{ name: 'default' }` para restaurar. Com a conta autenticada, `POST /api/__mock/commerce/settle` com `{ orderId }` conclui somente um pedido próprio; sem ID, conclui os pendentes próprios. Controles de catálogo, taxas e expiração de cupom estão detalhados nos [contratos](docs/api-contracts.md). Alterações do catálogo e conclusões de pedidos também emitem eventos. Leituras REST periódicas do carrinho (2 s) e de pedidos pendentes (500 ms) continuam como recuperação complementar.
+
+## Tempo real e cenários
+
+A conexão usa `socket.io-client` 4.8.4, transporte WebSocket na mesma origem e um binding local MSW 3 com parsers oficiais Engine.IO/Socket.IO. Não é necessário servidor remoto. A simulação suporta namespace padrão e eventos de texto; não implementa HTTP polling como transporte, acknowledgements, namespaces personalizados ou anexos binários. Autenticação e limpeza seguem o ciclo da sessão. A tela informa quando está conectada ou tentando reconectar.
+
+Para reproduzir a mudança durante checkout, adicione `nft-001`, entre na conta, conecte a carteira e revise. No console da aplicação aberta, execute:
+
+```js
+await fetch('/api/__mock/realtime/nft', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    nftId: 'nft-001',
+    editionId: 'nft-001-standard',
+    priceEth: '0.2',
+    available: 3,
+    delivery: 'duplicate',
+  }),
+})
+```
+
+O controle persiste os valores antes de enviar o evento pelo socket. O resumo muda, a interface anuncia a alteração e a confirmação anterior desaparece até uma nova revisão. `delivery: 'stale'` reenvia uma versão anterior sem regredir a base. Também existe replay por ID, descrito nos [contratos](docs/api-contracts.md).
+
+| Controle                                                                        | Uso                                                                                                                 |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/__mock/realtime/status`                                               | Inspeciona conexões prontas, contadores e metadados de eventos públicos/próprios, sem tokens.                       |
+| `POST /api/__mock/realtime/connection` com `{online: false}` / `{online: true}` | Interrompe/restaura o socket; REST continua disponível. O cliente tenta reconectar e reconcilia os recursos ativos. |
+| `POST /api/__mock/realtime/order` com `{orderId}`                               | Conclui pedido próprio e entrega `order.updated`; combine com cenário `pending` para controlar o momento.           |
+
+Os controles de eventos aceitam `delayMs` de 0 a 10000 e `delivery` normal/duplicate/stale quando aplicável. Para perder eventos de um pedido pendente sem a consulta periódica antecipar a recuperação, combine `offline-orders` com socket offline, conclua o pedido pelo controle e então restaure ambos. O mesmo ID e snapshot são recuperados sem outra compra. O cenário de interrupção persiste em `kurio:realtime-online` no `sessionStorage`; histórico de eventos vive apenas na aba e é descartado no refresh/reset.
 
 ## Verificações
 
@@ -146,7 +178,8 @@ Os testes de precisão usam o runner nativo do Node. Ainda não existem comando,
 ## Estrutura e decisões
 
 - [Arquitetura](ARCHITECTURE.md): responsabilidades, cache/retries, cancelamento, decisões de sessão/compra e pendências.
-- [Contratos REST e Socket.IO](docs/api-contracts.md): endpoints implementados de catálogo/conta/compra e contratos previstos de eventos.
+- [Contratos REST e Socket.IO](docs/api-contracts.md): endpoints, eventos implementados, controles e limites do binding.
+- [Verificações de tempo real](docs/verification-realtime.md): resultados da Fase 6, reconexão, isolamento e regressões.
 - [Verificações de comércio](docs/verification-commerce.md): resultados da Fase 5, regressões e limites atuais.
 - [Inspeção dos protótipos](docs/design-audit.md): inventário das 15 telas exportadas, tokens observados e assets faltantes.
 - [Verificações da conta](docs/verification-account.md): resultados do segundo marco e limites atuais.
