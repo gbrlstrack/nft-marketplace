@@ -11,6 +11,8 @@ import type {
 import { nftFixtures } from '../fixtures'
 import { setMockScenario } from '../scenarios'
 import { registrationEns } from './ens'
+import { mergeGuestCart } from '../commerce/model.ts'
+import { resetCommerceScenario } from '../commerce/handlers.ts'
 import {
   createPassword,
   readDatabase,
@@ -70,6 +72,13 @@ function collector(profile: Profile): Collector {
 
 function sessionCookie(token: string, maxAge = 3600): string {
   return `nft_session=${encodeURIComponent(token)}; Path=/; SameSite=Lax; Max-Age=${maxAge}`
+}
+
+function authCookies(token: string): Headers {
+  const headers = new Headers()
+  headers.append('Set-Cookie', sessionCookie(token))
+  headers.append('Set-Cookie', 'nft_cart=; Path=/; SameSite=Lax; Max-Age=0')
+  return headers
 }
 
 function unauthorized(reason: 'missing' | 'expired' | 'invalid'): never {
@@ -263,6 +272,7 @@ export const accountHandlers = [
           favorites: { nftIds: [], version: 1 },
           wallets: [],
         })
+        mergeGuestCart(database, profile.id, cookies.nft_cart)
         const session = createSession(database, profile.id, cookies.nft_session)
         return { user: collector(profile), session }
       })
@@ -270,7 +280,7 @@ export const accountHandlers = [
         { user: result.user, expiresAt: result.session.expiresAt },
         {
           status: 201,
-          headers: { 'Set-Cookie': sessionCookie(result.session.token) },
+          headers: authCookies(result.session.token),
         },
       )
     }),
@@ -297,6 +307,7 @@ export const accountHandlers = [
             reason: 'invalid',
             message: 'E-mail ou senha incorretos.',
           })
+        mergeGuestCart(database, account.profile.id, cookies.nft_cart)
         const session = createSession(
           database,
           account.profile.id,
@@ -306,7 +317,7 @@ export const accountHandlers = [
       })
       return HttpResponse.json<AuthenticationResponse>(
         { user: result.user, expiresAt: result.session.expiresAt },
-        { headers: { 'Set-Cookie': sessionCookie(result.session.token) } },
+        { headers: authCookies(result.session.token) },
       )
     }),
   ),
@@ -356,6 +367,7 @@ export const accountHandlers = [
   http.post('/api/__mock/reset', () =>
     respond(async () => {
       await resetDatabase()
+      resetCommerceScenario()
       if (typeof sessionStorage !== 'undefined')
         sessionStorage.removeItem(accountScenarioKey)
       setMockScenario('default')

@@ -4,8 +4,13 @@ import { HttpNetworkFrame } from 'msw/experimental'
 import { handlers } from './handlers'
 import { initializeMockScenario } from './scenarios'
 import { accountHandlers } from './account/handlers'
+import { commerceHandlers } from './commerce/handlers'
 
-export const worker = setupWorker(...accountHandlers, ...handlers)
+export const worker = setupWorker(
+  ...commerceHandlers,
+  ...accountHandlers,
+  ...handlers,
+)
 
 export async function startMocking(): Promise<void> {
   if (import.meta.env.VITE_ENABLE_MOCKS !== 'true') return

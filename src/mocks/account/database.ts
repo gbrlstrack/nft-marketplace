@@ -4,6 +4,7 @@ import type {
   Wallet,
   WalletConnection,
 } from '../../contracts'
+import type { CommerceState } from '../commerce/model.ts'
 
 export const ACCOUNT_STORAGE_KEY = 'kurio:mock-account-db:v1'
 export const SESSION_TTL_MS = 60 * 60 * 1000
@@ -36,6 +37,7 @@ export interface AccountDatabase {
   users: AccountRecord[]
   sessions: SessionRecord[]
   connections: ConnectionRecord[]
+  commerce?: CommerceState
 }
 
 let memoryDatabase: AccountDatabase | undefined

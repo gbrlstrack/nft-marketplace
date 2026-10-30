@@ -12,7 +12,8 @@ import type {
   NftSort,
 } from '../contracts'
 import { parseEth } from '../lib/eth'
-import { nftFixtures } from './fixtures'
+import { readDatabase } from './account/database'
+import { commerce } from './commerce/model'
 import { catalogDelayMs, getMockScenario } from './scenarios'
 
 const validCategories: NftCategory[] = ['art', 'photography', 'music']
@@ -152,7 +153,7 @@ export const handlers = [
     const items =
       getMockScenario() === 'empty'
         ? []
-        : nftFixtures.filter((nft) => {
+        : commerce(await readDatabase()).catalog.filter((nft) => {
             const searchable = normalize(
               `${nft.name} ${nft.collection} ${nft.creator.name}`,
             )
@@ -179,7 +180,9 @@ export const handlers = [
     const networkFailure = await simulateNetwork(new URL(request.url))
     if (networkFailure) return networkFailure
 
-    const nft = nftFixtures.find((item) => item.id === params.id)
+    const nft = commerce(await readDatabase()).catalog.find(
+      (item) => item.id === params.id,
+    )
     if (!nft) {
       return errorResponse(
         { code: 'not-found', resource: 'nft', message: 'NFT não encontrado.' },
