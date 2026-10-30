@@ -18,6 +18,7 @@ import { http } from '@/lib/http'
 import { formatEth } from '@/lib/eth'
 import { getErrorMessage } from '@/lib/api-error'
 import { keepLatestOrder } from '@/features/realtime/resources'
+import { ConfirmedOrderReceipt } from './confirmed-order-receipt'
 
 export function OrderPage() {
   const { orderId } = useParams({ from: '/orders/$orderId' })
@@ -113,26 +114,25 @@ export function OrderPage() {
       </section>
     )
   const order = query.data
+  const warning = query.isError ? (
+    <p role="alert" className="mt-5 text-sm">
+      A conexão foi interrompida. Os últimos dados continuam visíveis.{' '}
+      <button className="underline" onClick={() => void query.refetch()}>
+        Tentar novamente
+      </button>
+    </p>
+  ) : undefined
+  if (order.status === 'confirmed')
+    return <ConfirmedOrderReceipt order={order} warning={warning} />
   return (
     <section className="mx-auto max-w-2xl rounded-xl border border-border bg-card p-5 sm:p-9">
       <h1 className="text-center text-2xl font-bold" aria-live="polite">
-        {order.status === 'confirmed'
-          ? 'Compra confirmada'
-          : order.status === 'declined'
-            ? 'Pagamento recusado'
-            : 'Pedido pendente'}
+        {order.status === 'declined' ? 'Pagamento recusado' : 'Pedido pendente'}
       </h1>
       <p className="mt-4 break-all text-center text-xs text-muted-foreground">
         Pedido <span data-testid="order-id">{order.id}</span>
       </p>
-      {query.isError && (
-        <p role="alert" className="mt-5 text-sm">
-          A conexão foi interrompida. Os últimos dados continuam visíveis.{' '}
-          <button className="underline" onClick={() => void query.refetch()}>
-            Tentar novamente
-          </button>
-        </p>
-      )}
+      {warning}
       {order.status === 'pending' && (
         <p role="status" className="mt-6 text-sm">
           Aguardando o resultado da simulação. Você pode atualizar a página sem
@@ -195,22 +195,6 @@ export function OrderPage() {
           </dd>
         </div>
       </dl>
-      {order.status === 'confirmed' && (
-        <div
-          id="transacao-simulada"
-          className="mt-7 border-t border-border pt-5"
-        >
-          <h2 className="text-base font-bold">Transação simulada</h2>
-          <p className="mt-3 break-all text-sm">{order.transactionReference}</p>
-          <p className="mt-3 text-xs text-muted-foreground">
-            Compra confirmada na simulação. Nenhuma transferência real foi
-            enviada à blockchain.
-          </p>
-          <Button asChild variant="outline" className="mt-5">
-            <a href={order.simulatedExplorerUrl}>Ver transação simulada</a>
-          </Button>
-        </div>
-      )}
       <div className="mt-8 flex flex-wrap gap-3">
         <Button asChild>
           <Link to="/">Continuar explorando</Link>
